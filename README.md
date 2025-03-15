@@ -36,13 +36,13 @@ Simply add these URLs to your Pi-hole's blocklist settings (Settings → Blockli
 
 | Category | URL |
 |----------|-----|
-| **All Domains** | `https://raw.githubusercontent.com/zachlagden/Pi-hole-Optimized-Blocklists/main/lists/all_domains.txt` |
-| **Advertising** | `https://raw.githubusercontent.com/zachlagden/Pi-hole-Optimized-Blocklists/main/lists/advertising.txt` |
-| **Tracking** | `https://raw.githubusercontent.com/zachlagden/Pi-hole-Optimized-Blocklists/main/lists/tracking.txt` |
-| **Malicious** | `https://raw.githubusercontent.com/zachlagden/Pi-hole-Optimized-Blocklists/main/lists/malicious.txt` |
-| **Suspicious** | `https://raw.githubusercontent.com/zachlagden/Pi-hole-Optimized-Blocklists/main/lists/suspicious.txt` |
-| **Comprehensive** | `https://raw.githubusercontent.com/zachlagden/Pi-hole-Optimized-Blocklists/main/lists/comprehensive.txt` |
-| **NSFW** | `https://raw.githubusercontent.com/zachlagden/Pi-hole-Optimized-Blocklists/main/lists/nsfw.txt` |
+| **All Domains** | `https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/all_domains.txt` |
+| **Advertising** | `https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/advertising.txt` |
+| **Tracking** | `https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/tracking.txt` |
+| **Malicious** | `https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/malicious.txt` |
+| **Suspicious** | `https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/suspicious.txt` |
+| **Comprehensive** | `https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/comprehensive.txt` |
+| **NSFW** | `https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/nsfw.txt` |
 
 After adding your desired lists, click "Save and update" to apply them to your Pi-hole.
 
@@ -53,7 +53,7 @@ If you prefer to download the lists manually:
 ```bash
 # Download the lists to your Pi-hole
 cd /etc/pihole/
-sudo wget -O advertising.txt https://raw.githubusercontent.com/zachlagden/Pi-hole-Optimized-Blocklists/main/lists/advertising.txt
+sudo wget -O advertising.txt https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/advertising.txt
 # Download other lists as desired
 sudo pihole restartdns reload
 ```
@@ -62,13 +62,13 @@ sudo pihole restartdns reload
 
 | List | Description | Domains | Raw Link |
 |------|-------------|---------|----------|
-| **all_domains.txt** | Complete collection of all unique domains | 6,776,057 | [Download](https://raw.githubusercontent.com/zachlagden/Pi-hole-Optimized-Blocklists/main/lists/all_domains.txt) |
-| **advertising.txt** | Ad networks and services | 160,057 | [Download](https://raw.githubusercontent.com/zachlagden/Pi-hole-Optimized-Blocklists/main/lists/advertising.txt) |
-| **tracking.txt** | Analytics and tracking services | 88,429 | [Download](https://raw.githubusercontent.com/zachlagden/Pi-hole-Optimized-Blocklists/main/lists/tracking.txt) |
-| **malicious.txt** | Malware, phishing, and scams | 1,414,910 | [Download](https://raw.githubusercontent.com/zachlagden/Pi-hole-Optimized-Blocklists/main/lists/malicious.txt) |
-| **suspicious.txt** | Potentially unwanted content | 176,309 | [Download](https://raw.githubusercontent.com/zachlagden/Pi-hole-Optimized-Blocklists/main/lists/suspicious.txt) |
-| **comprehensive.txt** | Well-maintained multi-category lists | 418,452 | [Download](https://raw.githubusercontent.com/zachlagden/Pi-hole-Optimized-Blocklists/main/lists/comprehensive.txt) |
-| **nsfw.txt** | Adult content | 4,925,762 | [Download](https://raw.githubusercontent.com/zachlagden/Pi-hole-Optimized-Blocklists/main/lists/nsfw.txt) |
+| **all_domains.txt** | Complete collection of all unique domains | 6,776,057 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/all_domains.txt) |
+| **advertising.txt** | Ad networks and services | 160,057 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/advertising.txt) |
+| **tracking.txt** | Analytics and tracking services | 88,429 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/tracking.txt) |
+| **malicious.txt** | Malware, phishing, and scams | 1,414,910 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/malicious.txt) |
+| **suspicious.txt** | Potentially unwanted content | 176,309 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/suspicious.txt) |
+| **comprehensive.txt** | Well-maintained multi-category lists | 418,452 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/comprehensive.txt) |
+| **nsfw.txt** | Adult content | 4,925,762 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/nsfw.txt) |
 
 ### Recommendations
 
