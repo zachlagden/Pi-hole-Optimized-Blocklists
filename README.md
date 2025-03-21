@@ -12,6 +12,7 @@
 [The Lists](#-the-lists) •
 [Statistics](#-statistics) •
 [Usage](#-usage) •
+[Weekly Updates](#-weekly-updates) •
 [FAQ](#-faq)
 
 </div>
@@ -123,6 +124,22 @@ Add these to your Pi-hole whitelist if you experience issues.
 - Pi-hole can easily handle millions of domains on modern hardware (RPi 4+)
 - For older devices (RPi 3 or earlier), consider using only specific category lists instead of all_domains.txt
 - The impact on DNS query performance is minimal after initial loading
+
+## 🔄 Weekly Updates
+
+These blocklists are automatically updated every Sunday using GitHub Actions. The process:
+
+1. Downloads the latest blocklists from their original sources
+2. Processes and optimizes them using [Pi-hole-Blocklist-Optimizer](https://github.com/zachlagden/Pi-hole-Blocklist-Optimizer)
+3. Removes duplicates and validates domains
+4. Updates the repository with changes
+
+### Latest Update
+
+- **Date**: March 15, 2025
+- **Processing time**: 80.24 seconds
+- **Total domains**: 6,776,057
+- **Duplicates removed**: 492,043
 
 ## ❓ FAQ
 
