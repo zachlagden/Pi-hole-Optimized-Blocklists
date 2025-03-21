@@ -159,6 +159,16 @@ jobs:
             echo "No changes detected in any blocklists. Repository will remain unchanged."
           fi
           
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          # Set remote URL with token for authentication
+          git remote set-url origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/zachlagden/Pi-hole-Optimized-Blocklists.git
+          
+          echo "Configured Git user"
+          
       - name: Commit and push changes
         if: steps.check_changes.outputs.changes_detected == 'true'
         run: |
