@@ -1,0 +1,154 @@
+name: Update Blocklists
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'  # Run weekly on Sunday at midnight UTC
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  update-blocklists:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          lfs: true
+          token: ${{ secrets.GH_PAT }}
+          fetch-depth: 0  # Fetch all history to properly work with LFS
+          
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests tqdm
+          echo "Installed Python dependencies"
+          
+      - name: Clone Optimizer repository
+        run: |
+          git clone https://github.com/zachlagden/Pi-hole-Blocklist-Optimizer.git optimizer
+          echo "Cloned Pi-hole-Blocklist-Optimizer repository"
+          
+      - name: Run Optimizer
+        run: |
+          cp blocklists.conf optimizer/
+          cd optimizer
+          echo "Running Pi-hole Blocklist Optimizer..."
+          python pihole_downloader.py --prod-dir pihole_blocklists_prod
+          
+          # Check if the optimizer produced the expected files
+          if [ ! -f "pihole_blocklists_prod/all_domains.txt" ]; then
+            echo "Error: Optimizer did not produce all_domains.txt file"
+            exit 1
+          fi
+          echo "Optimizer completed successfully"
+          
+      - name: List generated files
+        run: |
+          echo "Files in optimizer/pihole_blocklists_prod:"
+          ls -la optimizer/pihole_blocklists_prod/
+          
+      - name: Ensure Git LFS is properly set up
+        run: |
+          # Install Git LFS
+          git lfs install
+          
+          # Verify that .gitattributes exists and has proper LFS tracking
+          if ! grep -q "lists/*.txt" .gitattributes; then
+            echo "Warning: LFS tracking not found in .gitattributes"
+            echo "Current .gitattributes content:"
+            cat .gitattributes
+          else
+            echo "LFS tracking properly configured in .gitattributes"
+          fi
+          
+      - name: Check for changes in blocklists
+        id: check_changes
+        run: |
+          # Ensure lists directory exists
+          mkdir -p lists
+          
+          # Define the files to check - ONLY the category files
+          FILES=("all_domains.txt" "advertising.txt" "tracking.txt" "malicious.txt" "suspicious.txt" "comprehensive.txt" "nsfw.txt")
+          
+          # Track if any files have changed
+          CHANGES_DETECTED=false
+          CHANGED_FILES=""
+          
+          # Compare each file if it exists
+          for file in "${FILES[@]}"; do
+            if [ -f "optimizer/pihole_blocklists_prod/$file" ]; then
+              if [ -f "lists/$file" ]; then
+                # Use cmp to compare binary files
+                if ! cmp -s "optimizer/pihole_blocklists_prod/$file" "lists/$file"; then
+                  echo "Changes detected in $file"
+                  CHANGES_DETECTED=true
+                  CHANGED_FILES="$CHANGED_FILES $file"
+                  cp "optimizer/pihole_blocklists_prod/$file" "lists/$file"
+                else
+                  echo "No changes in $file"
+                fi
+              else
+                echo "New file: $file"
+                CHANGES_DETECTED=true
+                CHANGED_FILES="$CHANGED_FILES $file"
+                cp "optimizer/pihole_blocklists_prod/$file" "lists/$file"
+              fi
+            else
+              echo "Warning: $file not found in optimizer output"
+            fi
+          done
+          
+          # Set outputs for later steps
+          echo "changes_detected=$CHANGES_DETECTED" >> $GITHUB_OUTPUT
+          echo "changed_files=$CHANGED_FILES" >> $GITHUB_OUTPUT
+          
+          if [ "$CHANGES_DETECTED" = true ]; then
+            echo "Changes detected in blocklists. Will update repository."
+          else
+            echo "No changes detected in any blocklists. Repository will remain unchanged."
+          fi
+          
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          # Set remote URL with token for authentication
+          git remote set-url origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/zachlagden/Pi-hole-Optimized-Blocklists.git
+          
+          echo "Configured Git user"
+          
+      - name: Commit and push changes
+        if: steps.check_changes.outputs.changes_detected == 'true'
+        run: |
+          # Add the updated blocklist files
+          git add lists/*.txt
+          
+          # Create meaningful commit message
+          COMMIT_MSG="Weekly update of blocklists $(date +%F)"
+          if [ ! -z "${{ steps.check_changes.outputs.changed_files }}" ]; then
+            COMMIT_MSG="$COMMIT_MSG - Updated:${{ steps.check_changes.outputs.changed_files }}"
+          fi
+          
+          # Double-check if there are changes to commit (safety check)
+          if git diff --staged --quiet; then
+            echo "No changes to commit (final verification)"
+          else
+            echo "Committing changes with message: $COMMIT_MSG"
+            git commit -m "$COMMIT_MSG"
+            
+            echo "Pushing changes with LFS..."
+            git push
+            echo "Push completed successfully"
+          fi
+          
+      - name: No changes report
+        if: steps.check_changes.outputs.changes_detected != 'true'
+        run: |
+          echo "No changes detected in any blocklist files."
+          echo "Repository remains unchanged. Workflow completed successfully."
