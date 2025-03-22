@@ -175,6 +175,8 @@ jobs:
           sed -i 's/\*\*[0-9]\+\*\* source blocklists/**${{ steps.stats.outputs.source_lists }}** source blocklists/g' README.md.tmp
           sed -i 's/\*\*[0-9]\+\*\* categories/**${{ steps.stats.outputs.categories }}** categories/g' README.md.tmp
           sed -i 's/\*\*~[0-9]\+\*\* duplicate domains/**~${{ steps.stats.outputs.duplicates_formatted }}** duplicate domains/g' README.md.tmp
+          sed -i 's/\*\*~\*\* duplicate domains/**~${{ steps.stats.outputs.duplicates_formatted }}** duplicate domains/g' README.md.tmp
+          sed -i 's/\*\*\*\* source blocklists/**${{ steps.stats.outputs.source_lists }}** source blocklists/g' README.md.tmp
           sed -i 's/\*\*Last updated\*\*: .*/**Last updated**: ${{ steps.stats.outputs.update_date }}/g' README.md.tmp
           
           # Fix for all_domains.txt empty count - use more precise pattern matching
