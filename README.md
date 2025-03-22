@@ -63,10 +63,10 @@ sudo pihole restartdns reload
 
 | List | Description | Domains | Raw Link |
 |------|-------------|---------|----------|
-| **all_domains.txt** | Complete collection of all unique domains | 6,537,121 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/all_domains.txt) |
+| **all_domains.txt** | Complete collection of all unique domains | 6,537,122 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/all_domains.txt) |
 | **advertising.txt** | Ad networks and services | 160,609 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/advertising.txt) |
 | **tracking.txt** | Analytics and tracking services | 88,484 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/tracking.txt) |
-| **malicious.txt** | Malware, phishing, and scams | 1,416,110 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/malicious.txt) |
+| **malicious.txt** | Malware, phishing, and scams | 1,416,111 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/malicious.txt) |
 | **suspicious.txt** | Potentially unwanted content | 181,903 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/suspicious.txt) |
 | **comprehensive.txt** | Well-maintained multi-category lists | 305,562 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/comprehensive.txt) |
 | **nsfw.txt** | Adult content | 4,804,395 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/nsfw.txt) |
@@ -84,9 +84,9 @@ sudo pihole restartdns reload
 These lists are compiled from over 45 trusted sources, and the current version includes:
 
 - **6.7+ million** unique domains
-- **** source blocklists
+- **47** source blocklists
 - **6** categories
-- **~** duplicate domains removed
+- **~419,942** duplicate domains removed
 - **Last updated**: March 22, 2025
 
 ## 🛠️ Usage
@@ -138,7 +138,7 @@ These blocklists are automatically updated every Sunday using GitHub Actions. Th
 
 - **Date**: March 22, 2025
 - **Processing time**: 80.24 seconds
-- **Total domains**: 6,537,121
+- **Total domains**: 6,537,122
 - **Duplicates removed**: 419,942
 
 ## ❓ FAQ
