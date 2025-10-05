@@ -3,7 +3,7 @@
 <div align="center">
 
 ![Last Updated](https://img.shields.io/github/last-commit/zachlagden/Pi-hole-Optimized-Blocklists?label=last%20updated&style=flat-square)
-![Total Domains](https://img.shields.io/badge/domains-6.9M%2B-blue?style=flat-square)
+![Total Domains](https://img.shields.io/badge/domains-6.6M%2B-blue?style=flat-square)
 ![License](https://img.shields.io/badge/license-Unlicense-green?style=flat-square)
 
 **Ready-to-use, optimized blocklists for Pi-hole, regularly updated and categorized by threat type**
@@ -63,13 +63,13 @@ sudo pihole restartdns reload
 
 | List | Description | Domains | Raw Link |
 |------|-------------|---------|----------|
-| **all_domains.txt** | Complete collection of all unique domains | 6,996,077 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/all_domains.txt) |
-| **advertising.txt** | Ad networks and services | 190,346 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/advertising.txt) |
-| **tracking.txt** | Analytics and tracking services | 62,380 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/tracking.txt) |
-| **malicious.txt** | Malware, phishing, and scams | 1,683,825 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/malicious.txt) |
-| **suspicious.txt** | Potentially unwanted content | 347,353 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/suspicious.txt) |
-| **comprehensive.txt** | Well-maintained multi-category lists | 386,745 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/comprehensive.txt) |
-| **nsfw.txt** | Adult content | 4,909,213 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/nsfw.txt) |
+| **all_domains.txt** | Complete collection of all unique domains | 6,645,745 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/all_domains.txt) |
+| **advertising.txt** | Ad networks and services | 191,460 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/advertising.txt) |
+| **tracking.txt** | Analytics and tracking services | 88,736 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/tracking.txt) |
+| **malicious.txt** | Malware, phishing, and scams | 1,404,790 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/malicious.txt) |
+| **suspicious.txt** | Potentially unwanted content | 152,488 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/suspicious.txt) |
+| **comprehensive.txt** | Well-maintained multi-category lists | 262,219 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/comprehensive.txt) |
+| **nsfw.txt** | Adult content | 4,908,760 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/nsfw.txt) |
 
 ### Recommendations
 
@@ -87,7 +87,7 @@ These lists are compiled from over 45 trusted sources, and the current version i
 - **47** source blocklists
 - **6** categories
 - **~419,942** duplicate domains removed
-- **Last updated**: September 14, 2025
+- **Last updated**: October 05, 2025
 
 ## 🛠️ Usage
 
@@ -136,10 +136,10 @@ These blocklists are automatically updated every Sunday using GitHub Actions. Th
 
 ### Latest Update
 
-- **Date**: September 14, 2025
+- **Date**: October 05, 2025
 - **Processing time**: 80.24 seconds
-- **Total domains**: 6,996,077
-- **Duplicates removed**: 583,785
+- **Total domains**: 6,645,745
+- **Duplicates removed**: 362,708
 
 ## ❓ FAQ
 
