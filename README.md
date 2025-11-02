@@ -63,13 +63,13 @@ sudo pihole restartdns reload
 
 | List | Description | Domains | Raw Link |
 |------|-------------|---------|----------|
-| **all_domains.txt** | Complete collection of all unique domains | 6,715,281 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/all_domains.txt) |
-| **advertising.txt** | Ad networks and services | 201,471 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/advertising.txt) |
-| **tracking.txt** | Analytics and tracking services | 88,607 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/tracking.txt) |
-| **malicious.txt** | Malware, phishing, and scams | 1,456,518 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/malicious.txt) |
-| **suspicious.txt** | Potentially unwanted content | 165,892 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/suspicious.txt) |
-| **comprehensive.txt** | Well-maintained multi-category lists | 269,296 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/comprehensive.txt) |
-| **nsfw.txt** | Adult content | 4,906,581 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/nsfw.txt) |
+| **all_domains.txt** | Complete collection of all unique domains | 6,752,666 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/all_domains.txt) |
+| **advertising.txt** | Ad networks and services | 202,092 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/advertising.txt) |
+| **tracking.txt** | Analytics and tracking services | 88,621 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/tracking.txt) |
+| **malicious.txt** | Malware, phishing, and scams | 1,497,211 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/malicious.txt) |
+| **suspicious.txt** | Potentially unwanted content | 178,181 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/suspicious.txt) |
+| **comprehensive.txt** | Well-maintained multi-category lists | 287,953 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/comprehensive.txt) |
+| **nsfw.txt** | Adult content | 4,900,067 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/nsfw.txt) |
 
 ### Recommendations
 
@@ -87,7 +87,7 @@ These lists are compiled from over 45 trusted sources, and the current version i
 - **49** source blocklists
 - **6** categories
 - **~419,942** duplicate domains removed
-- **Last updated**: October 22, 2025
+- **Last updated**: November 02, 2025
 
 ## 🛠️ Usage
 
@@ -136,10 +136,10 @@ These blocklists are automatically updated every Sunday using GitHub Actions. Th
 
 ### Latest Update
 
-- **Date**: October 22, 2025
+- **Date**: November 02, 2025
 - **Processing time**: 80.24 seconds
-- **Total domains**: 6,715,281
-- **Duplicates removed**: 373,084
+- **Total domains**: 6,752,666
+- **Duplicates removed**: 401,459
 
 ## ❓ FAQ
 
