@@ -8,10 +8,10 @@
 
 **Pre-optimized, deduplicated blocklists for [Pi-hole](https://pi-hole.net/) — updated weekly**
 
-[Quick Start](#-quick-start) •
-[Available Lists](#-available-lists) •
-[Statistics](#-statistics) •
-[FAQ](#-faq)
+[Quick Start](#quick-start) •
+[Available Lists](#available-lists) •
+[Statistics](#statistics) •
+[FAQ](#faq)
 
 </div>
 
