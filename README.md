@@ -2,176 +2,179 @@
 
 <div align="center">
 
-![Last Updated](https://img.shields.io/github/last-commit/zachlagden/Pi-hole-Optimized-Blocklists?label=last%20updated&style=flat-square)
 ![Total Domains](https://img.shields.io/badge/domains-6.7M%2B-blue?style=flat-square)
-![License](https://img.shields.io/badge/license-Unlicense-green?style=flat-square)
+![Updated Weekly](https://img.shields.io/badge/updated-weekly-green?style=flat-square)
+![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)
 
-**Ready-to-use, optimized blocklists for Pi-hole, regularly updated and categorized by threat type**
+**Pre-optimized, deduplicated blocklists for [Pi-hole](https://pi-hole.net/) — updated weekly**
 
-[Installation](#-installation) •
-[The Lists](#-the-lists) •
+[Quick Start](#-quick-start) •
+[Available Lists](#-available-lists) •
 [Statistics](#-statistics) •
-[Usage](#-usage) •
-[Weekly Updates](#-weekly-updates) •
 [FAQ](#-faq)
 
 </div>
 
-## ℹ️ About
+---
 
-This repository contains regularly updated, optimized blocklists for use with [Pi-hole](https://pi-hole.net/), the popular DNS-level ad blocker. These lists have been processed with the [Pi-hole Blocklist Optimizer](https://github.com/zachlagden/Pi-hole-Blocklist-Optimizer) to:
+## What Is This?
 
-- Remove duplicates across all source lists
-- Validate all domains for proper formatting
-- Organize domains by category
-- Pre-optimize for Pi-hole compatibility
-- Remove false positives and problematic domains
+Ready-to-use blocklists compiled from 49+ trusted sources, processed by the [Pi-hole Blocklist Optimizer](https://github.com/zachlagden/Pi-hole-Blocklist-Optimizer):
 
-These lists are updated on a regular basis to ensure they contain the latest threats while minimizing false positives.
+- **6.7M+ unique domains** across all categories
+- **Deduplicated** — no redundant entries
+- **Validated** — only properly formatted domains
+- **Whitelisted** — common false positives removed
+- **Updated weekly** via GitHub Actions
 
-## 🚀 Installation
+## Quick Start
 
-### Option 1: Quick Setup (Recommended)
-
-Simply add these URLs to your Pi-hole's blocklist settings (Settings → Blocklists):
-
-| Category | URL |
-|----------|-----|
-| **All Domains** | `https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/all_domains.txt` |
-| **Advertising** | `https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/advertising.txt` |
-| **Tracking** | `https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/tracking.txt` |
-| **Malicious** | `https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/malicious.txt` |
-| **Suspicious** | `https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/suspicious.txt` |
-| **Comprehensive** | `https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/comprehensive.txt` |
-| **NSFW** | `https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/nsfw.txt` |
-
-After adding your desired lists, click "Save and update" to apply them to your Pi-hole.
-
-### Option 2: Manual Download
-
-If you prefer to download the lists manually:
-
-```bash
-# Download the lists to your Pi-hole
-cd /etc/pihole/
-sudo wget -O advertising.txt https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/advertising.txt
-# Download other lists as desired
-sudo pihole restartdns reload
-```
-
-## 📋 The Lists
-
-| List | Description | Domains | Raw Link |
-|------|-------------|---------|----------|
-| **all_domains.txt** | Complete collection of all unique domains | 6,783,097 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/all_domains.txt) |
-| **advertising.txt** | Ad networks and services | 206,725 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/advertising.txt) |
-| **tracking.txt** | Analytics and tracking services | 88,701 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/tracking.txt) |
-| **malicious.txt** | Malware, phishing, and scams | 1,514,637 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/malicious.txt) |
-| **suspicious.txt** | Potentially unwanted content | 179,918 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/suspicious.txt) |
-| **comprehensive.txt** | Well-maintained multi-category lists | 296,921 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/comprehensive.txt) |
-| **nsfw.txt** | Adult content | 4,901,662 | [Download](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/refs/heads/main/lists/nsfw.txt) |
-
-### Recommendations
-
-- **Balanced Protection**: Use the `comprehensive.txt` list (excellent for most users)
-- **Standard Protection**: Use the `advertising.txt` and `tracking.txt` lists
-- **Enhanced Protection**: Add the `malicious.txt` list
-- **Complete Protection**: Use `all_domains.txt` (may require more powerful hardware)
-- **Parental Controls**: Add the `nsfw.txt` list
-
-## 📊 Statistics
-
-These lists are compiled from over 45 trusted sources, and the current version includes:
-
-- **6.7+ million** unique domains
-- **49** source blocklists
-- **6** categories
-- **~419,942** duplicate domains removed
-- **Last updated**: November 16, 2025
-
-## 🛠️ Usage
-
-### Whitelist Recommendations
-
-Some domains may need to be whitelisted to prevent interference with normal services. Common whitelist recommendations:
+Add one URL to Pi-hole (Settings → Adlists):
 
 ```
-# Microsoft services
+https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/main/lists/all_domains.txt
+```
+
+Then run: `pihole -g`
+
+**That's it.** You now have 6.7M+ domains blocked.
+
+## Available Lists
+
+| List | Description | Domains |
+|------|-------------|--------:|
+| **[all_domains.txt](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/main/lists/all_domains.txt)** | Everything combined | 6,783,097 |
+| **[advertising.txt](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/main/lists/advertising.txt)** | Ad networks & services | 206,725 |
+| **[tracking.txt](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/main/lists/tracking.txt)** | Analytics & telemetry | 88,701 |
+| **[malicious.txt](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/main/lists/malicious.txt)** | Malware, phishing, scams | 1,514,637 |
+| **[suspicious.txt](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/main/lists/suspicious.txt)** | Potentially unwanted | 179,918 |
+| **[comprehensive.txt](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/main/lists/comprehensive.txt)** | Curated multi-category | 296,921 |
+| **[nsfw.txt](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/main/lists/nsfw.txt)** | Adult content | 4,901,662 |
+
+### Which List Should I Use?
+
+| Use Case | Recommended List(s) |
+|----------|---------------------|
+| Most users | `comprehensive.txt` |
+| Maximum protection | `all_domains.txt` |
+| Ads + tracking only | `advertising.txt` + `tracking.txt` |
+| Security focused | `malicious.txt` + `suspicious.txt` |
+| Parental controls | Add `nsfw.txt` |
+
+## Statistics
+
+| Metric | Value |
+|--------|-------|
+| Total unique domains | 6,783,097 |
+| Source blocklists | 49 |
+| Categories | 6 |
+| Duplicates removed | ~420,000 |
+| Whitelisted domains | 300+ |
+| Update frequency | Weekly (Sundays) |
+
+**Last updated**: December 04, 2025
+
+## How It Works
+
+```
+49 Source Lists → Download → Validate → Deduplicate → Whitelist → Categorize → Output
+```
+
+Every Sunday, GitHub Actions:
+1. Downloads all source blocklists
+2. Validates domain formatting
+3. Removes duplicates across all lists
+4. Applies whitelist (false positive removal)
+5. Generates category-specific and combined lists
+6. Commits changes to this repository
+
+## Whitelist
+
+Common services are pre-whitelisted to prevent breakage. If something isn't working, you may need to whitelist it in Pi-hole:
+
+<details>
+<summary>Common whitelist entries (click to expand)</summary>
+
+```
+# Microsoft
 outlook.office365.com
 products.office.com
-c.s-microsoft.com
-i.s-microsoft.com
+login.microsoftonline.com
 
-# Google services
+# Google
 accounts.google.com
 clients2.google.com
 clients4.google.com
 
-# Apple services
+# Apple
 appleid.apple.com
-token.safebrowsing.apple
+gsp-ssl.ls.apple.com
 
-# Other services
-gravatar.com
+# CDNs & APIs
 s.shopify.com
+cdn.shopify.com
+gravatar.com
 api.github.com
+raw.githubusercontent.com
+
+# Streaming
+spclient.wg.spotify.com
 ```
 
-Add these to your Pi-hole whitelist if you experience issues.
+</details>
 
-### Performance Impact
+## FAQ
 
-- Pi-hole can easily handle millions of domains on modern hardware (RPi 4+)
-- For older devices (RPi 3 or earlier), consider using only specific category lists instead of all_domains.txt
-- The impact on DNS query performance is minimal after initial loading
+<details>
+<summary><b>How often are lists updated?</b></summary>
 
-## 🔄 Weekly Updates
+Weekly, every Sunday at midnight UTC.
+</details>
 
-These blocklists are automatically updated every Sunday using GitHub Actions. The process:
+<details>
+<summary><b>Something legitimate is blocked — what do I do?</b></summary>
 
-1. Downloads the latest blocklists from their original sources
-2. Processes and optimizes them using [Pi-hole-Blocklist-Optimizer](https://github.com/zachlagden/Pi-hole-Blocklist-Optimizer)
-3. Removes duplicates and validates domains
-4. Updates the repository with changes
+1. Add it to your Pi-hole whitelist
+2. [Open an issue](https://github.com/zachlagden/Pi-hole-Optimized-Blocklists/issues) so we can review it
+</details>
 
-### Latest Update
+<details>
+<summary><b>Will this slow down my Pi-hole?</b></summary>
 
-- **Date**: November 16, 2025
-- **Processing time**: 80.24 seconds
-- **Total domains**: 6,783,097
-- **Duplicates removed**: 405,467
+No. Pi-hole handles millions of domains efficiently. The `all_domains.txt` list works fine on a Raspberry Pi 4. For older hardware (Pi 3 or earlier), consider using specific category lists instead.
+</details>
 
-## ❓ FAQ
+<details>
+<summary><b>Can I use this with AdGuard Home?</b></summary>
 
-### How often are these lists updated?
+Yes. The lists use standard hosts format (`0.0.0.0 domain.com`) compatible with most DNS blockers.
+</details>
 
-These lists are updated weekly, typically on Sunday. Check the last commit date for the most recent update.
+<details>
+<summary><b>How is this different from default Pi-hole lists?</b></summary>
 
-### Why are some legitimate domains blocked?
+These lists are significantly more comprehensive (6.7M vs ~300K domains), deduplicated, and categorized. They combine 49+ trusted sources into optimized outputs.
+</details>
 
-Occasionally, legitimate domains may be included in blocklists. If you find a false positive, please:
+<details>
+<summary><b>Can I run the optimizer myself?</b></summary>
 
-1. Add it to your whitelist in Pi-hole
-2. [Open an issue](https://github.com/zachlagden/Pi-hole-Optimized-Blocklists/issues/new) with details so it can be reviewed
+Yes! See [Pi-hole-Blocklist-Optimizer](https://github.com/zachlagden/Pi-hole-Blocklist-Optimizer).
+</details>
 
-### How do these compare to default Pi-hole lists?
+## Links
 
-These lists are considerably more comprehensive than the default Pi-hole lists, offering broader protection across multiple categories.
+- [Pi-hole Blocklist Optimizer](https://github.com/zachlagden/Pi-hole-Blocklist-Optimizer) — The tool that generates these lists
+- [Pi-hole](https://pi-hole.net/) — Network-wide ad blocking
 
-### Can I use these with AdGuard Home or similar tools?
+## License
 
-Yes, these lists use the standard hosts format (`0.0.0.0 domain.com`) which is compatible with most DNS-based blocking tools.
+MIT License — see [LICENCE](LICENCE) for details.
 
-### Do I need all these lists?
+---
 
-No, you can choose which categories to use based on your needs. For most users, the comprehensive list provides excellent protection without requiring multiple lists.
+<div align="center">
 
-## 🙏 Acknowledgements
+**If this helps you, consider giving it a star!**
 
-These lists are compiled from numerous open-source blocklist projects. Full credit goes to the maintainers of these source lists who do the hard work of identifying and categorizing domains.
-
-Created using the [Pi-hole Blocklist Optimizer](https://github.com/zachlagden/Pi-hole-Blocklist-Optimizer).
-
-## 📜 License
-
-This repository is released under the [Unlicense](UNLICENCE), placing these lists in the public domain.
+</div>
