@@ -72,7 +72,7 @@ Then run: `pihole -g`
 | Whitelisted domains | 300+ |
 | Update frequency | Weekly (Sundays) |
 
-**Last updated**: December 04, 2025
+**Last updated**: December 07, 2025
 
 ## How It Works
 
