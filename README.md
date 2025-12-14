@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Total Domains](https://img.shields.io/badge/domains-6.7M%2B-blue?style=flat-square)
+![Total Domains](https://img.shields.io/badge/domains-6.8M%2B-blue?style=flat-square)
 ![Updated Weekly](https://img.shields.io/badge/updated-weekly-green?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)
 
@@ -72,7 +72,7 @@ Then run: `pihole -g`
 | Whitelisted domains | 300+ |
 | Update frequency | Weekly (Sundays) |
 
-**Last updated**: December 07, 2025
+**Last updated**: December 14, 2025
 
 ## How It Works
 
