@@ -128,34 +128,43 @@ jobs:
           echo "  Whitelist entries: $WHITELIST_ENTRIES"
 
       - name: Update README
+        env:
+          TOTAL_DOMAINS: ${{ steps.stats.outputs.total_domains }}
+          TOTAL_DOMAINS_FMT: ${{ steps.stats.outputs.total_domains_formatted }}
+          AD_DOMAINS: ${{ steps.stats.outputs.ad_domains }}
+          TRACKING_DOMAINS: ${{ steps.stats.outputs.tracking_domains }}
+          MALICIOUS_DOMAINS: ${{ steps.stats.outputs.malicious_domains }}
+          SUSPICIOUS_DOMAINS: ${{ steps.stats.outputs.suspicious_domains }}
+          COMPREHENSIVE_DOMAINS: ${{ steps.stats.outputs.comprehensive_domains }}
+          NSFW_DOMAINS: ${{ steps.stats.outputs.nsfw_domains }}
+          UPDATE_DATE: ${{ steps.stats.outputs.update_date }}
         run: |
-          cp README.md README.md.tmp
-
           # Update badge
-          MILLION_FORMAT=$(echo "scale=1; ${{ steps.stats.outputs.total_domains }} / 1000000" | bc | sed 's/^\./0./')
-          sed -i "s|https://img.shields.io/badge/domains-[0-9.]\+M%2B-blue|https://img.shields.io/badge/domains-${MILLION_FORMAT}M%2B-blue|g" README.md.tmp
+          MILLION_FORMAT=$(echo "scale=1; $TOTAL_DOMAINS / 1000000" | bc | sed 's/^\./0./')
+          sed -i "s#https://img.shields.io/badge/domains-[0-9.]*M%2B-blue#https://img.shields.io/badge/domains-${MILLION_FORMAT}M%2B-blue#g" README.md
 
-          # Update statistics
-          sed -i 's/\*\*[0-9,]\+\*\* unique domains/**${{ steps.stats.outputs.total_domains_formatted }}** unique domains/g' README.md.tmp
-          sed -i 's/\*\*[0-9]\+\*\* source blocklists/**${{ steps.stats.outputs.source_lists }}** source blocklists/g' README.md.tmp
-          sed -i 's/\*\*~[0-9,]\+\*\* duplicate domains/**~${{ steps.stats.outputs.duplicates_formatted }}** duplicate domains/g' README.md.tmp
-          sed -i 's/\*\*Last updated\*\*: .*/**Last updated**: ${{ steps.stats.outputs.update_date }}/g' README.md.tmp
+          # Update last updated date
+          sed -i "s#\*\*Last updated\*\*:.*#**Last updated**: $UPDATE_DATE#g" README.md
 
-          # Update table
-          sed -i 's/| \*\*all_domains.txt\*\* | Complete collection of all unique domains |[^|]*|/| **all_domains.txt** | Complete collection of all unique domains | ${{ steps.stats.outputs.total_domains_formatted }} |/g' README.md.tmp
-          sed -i 's/| \*\*advertising.txt\*\* | Ad networks and services |[^|]*|/| **advertising.txt** | Ad networks and services | ${{ steps.stats.outputs.ad_domains }} |/g' README.md.tmp
-          sed -i 's/| \*\*tracking.txt\*\* | Analytics and tracking services |[^|]*|/| **tracking.txt** | Analytics and tracking services | ${{ steps.stats.outputs.tracking_domains }} |/g' README.md.tmp
-          sed -i 's/| \*\*malicious.txt\*\* | Malware, phishing, and scams |[^|]*|/| **malicious.txt** | Malware, phishing, and scams | ${{ steps.stats.outputs.malicious_domains }} |/g' README.md.tmp
-          sed -i 's/| \*\*suspicious.txt\*\* | Potentially unwanted content |[^|]*|/| **suspicious.txt** | Potentially unwanted content | ${{ steps.stats.outputs.suspicious_domains }} |/g' README.md.tmp
-          sed -i 's/| \*\*comprehensive.txt\*\* | Well-maintained multi-category lists |[^|]*|/| **comprehensive.txt** | Well-maintained multi-category lists | ${{ steps.stats.outputs.comprehensive_domains }} |/g' README.md.tmp
-          sed -i 's/| \*\*nsfw.txt\*\* | Adult content |[^|]*|/| **nsfw.txt** | Adult content | ${{ steps.stats.outputs.nsfw_domains }} |/g' README.md.tmp
+          # Update table domain counts using awk for reliability
+          # Each row pattern: | **[file.txt](url)** | Description | NUMBER |
+          awk -v all="$TOTAL_DOMAINS_FMT" \
+              -v ad="$AD_DOMAINS" \
+              -v track="$TRACKING_DOMAINS" \
+              -v mal="$MALICIOUS_DOMAINS" \
+              -v sus="$SUSPICIOUS_DOMAINS" \
+              -v comp="$COMPREHENSIVE_DOMAINS" \
+              -v nsfw="$NSFW_DOMAINS" '
+          /\[all_domains\.txt\]/ { gsub(/[0-9,]+ \|$/, all " |") }
+          /\[advertising\.txt\]/ { gsub(/[0-9,]+ \|$/, ad " |") }
+          /\[tracking\.txt\]/ { gsub(/[0-9,]+ \|$/, track " |") }
+          /\[malicious\.txt\]/ { gsub(/[0-9,]+ \|$/, mal " |") }
+          /\[suspicious\.txt\]/ { gsub(/[0-9,]+ \|$/, sus " |") }
+          /\[comprehensive\.txt\]/ { gsub(/[0-9,]+ \|$/, comp " |") }
+          /\[nsfw\.txt\]/ { gsub(/[0-9,]+ \|$/, nsfw " |") }
+          { print }
+          ' README.md > README.md.tmp && mv README.md.tmp README.md
 
-          # Update Latest Update section
-          sed -i 's/- \*\*Date\*\*: .*/- **Date**: ${{ steps.stats.outputs.update_date }}/g' README.md.tmp
-          sed -i 's/- \*\*Total domains\*\*: .*$/- **Total domains**: ${{ steps.stats.outputs.total_domains_formatted }}/g' README.md.tmp
-          sed -i 's/- \*\*Duplicates removed\*\*: .*$/- **Duplicates removed**: ${{ steps.stats.outputs.duplicates_formatted }}/g' README.md.tmp
-
-          mv README.md.tmp README.md
           echo "✅ README updated"
 
       - name: Check for changes
