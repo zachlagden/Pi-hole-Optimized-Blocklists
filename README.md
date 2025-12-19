@@ -10,8 +10,6 @@
 
 </div>
 
----
-
 > **Looking for more features?** Check out [Zach's Lists](https://lists.zachlagden.uk) — a full-featured blocklist platform with custom source selection, smart whitelisting, and multiple output formats.
 
 ---
@@ -32,15 +30,11 @@
 
 **Last updated**: December 19, 2025
 
----
-
 ## Quick Start
 
 1. Go to Pi-hole admin → **Settings** → **Adlists**
 2. Add the raw URL for your chosen list(s)
 3. Run `pihole -g` to update
-
----
 
 ## FAQ
 
@@ -70,7 +64,15 @@ Every Sunday at midnight UTC via GitHub Actions.
 - Individual category lists — If you want granular control
 </details>
 
----
+## Star History
+
+<a href="https://star-history.com/#zachlagden/Pi-hole-Optimized-Blocklists&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=zachlagden/Pi-hole-Optimized-Blocklists&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=zachlagden/Pi-hole-Optimized-Blocklists&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=zachlagden/Pi-hole-Optimized-Blocklists&type=Date" />
+ </picture>
+</a>
 
 ## License
 
