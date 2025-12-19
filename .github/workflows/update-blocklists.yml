@@ -1,0 +1,227 @@
+name: Update Blocklists
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'  # Run weekly on Sunday at midnight UTC
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  update-blocklists:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+          token: ${{ secrets.GH_PAT }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests tqdm
+          echo "✅ Python dependencies installed"
+
+      - name: Clone Optimizer repository
+        run: |
+          git clone https://github.com/zachlagden/Pi-hole-Blocklist-Optimizer.git optimizer
+          echo "✅ Pi-hole-Blocklist-Optimizer cloned"
+
+      - name: Run Optimizer
+        run: |
+          # Copy config files to optimizer
+          cp blocklists.conf optimizer/
+          cp whitelist.txt optimizer/
+
+          cd optimizer
+          echo "🚀 Starting Pi-hole Blocklist Optimizer v2.0..."
+
+          # Run with all features:
+          # -t 8: Use 8 download threads
+          # --whitelist-report: Generate detailed whitelist report
+          # --prod-dir: Output to production directory
+          python pihole_downloader.py \
+            -t 8 \
+            --whitelist-report \
+            --prod-dir pihole_blocklists_prod
+
+          # Verify output
+          if [ ! -f "pihole_blocklists_prod/all_domains.txt" ]; then
+            echo "❌ Error: Optimizer did not produce all_domains.txt"
+            exit 1
+          fi
+
+          echo "✅ Optimizer completed successfully"
+          echo ""
+          echo "📁 Output files:"
+          du -h pihole_blocklists_prod/*.txt | sort -h
+
+          # Show whitelist report if generated
+          if [ -f "pihole_blocklists_prod/whitelist_report.txt" ]; then
+            echo ""
+            echo "📋 Whitelist Report (first 50 lines):"
+            head -50 pihole_blocklists_prod/whitelist_report.txt
+          fi
+
+      - name: Extract statistics
+        id: stats
+        run: |
+          echo "📊 Extracting statistics..."
+
+          # Count domains in each file (subtract 4 for header lines)
+          count_domains() {
+            if [ -f "$1" ]; then
+              lines=$(wc -l < "$1" | tr -d ' ')
+              echo $((lines > 4 ? lines - 4 : 0))
+            else
+              echo "0"
+            fi
+          }
+
+          # Count domains
+          ALL_DOMAINS=$(count_domains "optimizer/pihole_blocklists_prod/all_domains.txt")
+          AD_DOMAINS=$(count_domains "optimizer/pihole_blocklists_prod/advertising.txt")
+          TRACKING_DOMAINS=$(count_domains "optimizer/pihole_blocklists_prod/tracking.txt")
+          MALICIOUS_DOMAINS=$(count_domains "optimizer/pihole_blocklists_prod/malicious.txt")
+          SUSPICIOUS_DOMAINS=$(count_domains "optimizer/pihole_blocklists_prod/suspicious.txt")
+          COMPREHENSIVE_DOMAINS=$(count_domains "optimizer/pihole_blocklists_prod/comprehensive.txt")
+          NSFW_DOMAINS=$(count_domains "optimizer/pihole_blocklists_prod/nsfw.txt")
+
+          # Count source lists and whitelist entries
+          SOURCE_LISTS=$(grep -v "^#" blocklists.conf | grep -v "^$" | wc -l)
+          WHITELIST_ENTRIES=$(grep -v "^#" whitelist.txt | grep -v "^$" | wc -l)
+
+          # Calculate duplicates
+          SUM=$(( AD_DOMAINS + TRACKING_DOMAINS + MALICIOUS_DOMAINS + SUSPICIOUS_DOMAINS + COMPREHENSIVE_DOMAINS + NSFW_DOMAINS ))
+          DUPLICATES=$(( SUM > ALL_DOMAINS ? SUM - ALL_DOMAINS : 0 ))
+
+          # Format numbers with commas
+          format_number() {
+            echo "$1" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta'
+          }
+
+          # Set outputs
+          echo "total_domains=$ALL_DOMAINS" >> $GITHUB_OUTPUT
+          echo "total_domains_formatted=$(format_number $ALL_DOMAINS)" >> $GITHUB_OUTPUT
+          echo "duplicates_formatted=$(format_number $DUPLICATES)" >> $GITHUB_OUTPUT
+          echo "source_lists=$SOURCE_LISTS" >> $GITHUB_OUTPUT
+          echo "whitelist_entries=$WHITELIST_ENTRIES" >> $GITHUB_OUTPUT
+          echo "ad_domains=$(format_number $AD_DOMAINS)" >> $GITHUB_OUTPUT
+          echo "tracking_domains=$(format_number $TRACKING_DOMAINS)" >> $GITHUB_OUTPUT
+          echo "malicious_domains=$(format_number $MALICIOUS_DOMAINS)" >> $GITHUB_OUTPUT
+          echo "suspicious_domains=$(format_number $SUSPICIOUS_DOMAINS)" >> $GITHUB_OUTPUT
+          echo "comprehensive_domains=$(format_number $COMPREHENSIVE_DOMAINS)" >> $GITHUB_OUTPUT
+          echo "nsfw_domains=$(format_number $NSFW_DOMAINS)" >> $GITHUB_OUTPUT
+          echo "update_date=$(date +%B\ %d,\ %Y)" >> $GITHUB_OUTPUT
+
+          echo ""
+          echo "📊 Statistics:"
+          echo "  Total domains: $(format_number $ALL_DOMAINS)"
+          echo "  Duplicates removed: $(format_number $DUPLICATES)"
+          echo "  Source lists: $SOURCE_LISTS"
+          echo "  Whitelist entries: $WHITELIST_ENTRIES"
+
+      - name: Update README
+        run: |
+          cp README.md README.md.tmp
+
+          # Update badge
+          MILLION_FORMAT=$(echo "scale=1; ${{ steps.stats.outputs.total_domains }} / 1000000" | bc | sed 's/^\./0./')
+          sed -i "s|https://img.shields.io/badge/domains-[0-9.]\+M%2B-blue|https://img.shields.io/badge/domains-${MILLION_FORMAT}M%2B-blue|g" README.md.tmp
+
+          # Update statistics
+          sed -i 's/\*\*[0-9,]\+\*\* unique domains/**${{ steps.stats.outputs.total_domains_formatted }}** unique domains/g' README.md.tmp
+          sed -i 's/\*\*[0-9]\+\*\* source blocklists/**${{ steps.stats.outputs.source_lists }}** source blocklists/g' README.md.tmp
+          sed -i 's/\*\*~[0-9,]\+\*\* duplicate domains/**~${{ steps.stats.outputs.duplicates_formatted }}** duplicate domains/g' README.md.tmp
+          sed -i 's/\*\*Last updated\*\*: .*/**Last updated**: ${{ steps.stats.outputs.update_date }}/g' README.md.tmp
+
+          # Update table
+          sed -i 's/| \*\*all_domains.txt\*\* | Complete collection of all unique domains |[^|]*|/| **all_domains.txt** | Complete collection of all unique domains | ${{ steps.stats.outputs.total_domains_formatted }} |/g' README.md.tmp
+          sed -i 's/| \*\*advertising.txt\*\* | Ad networks and services |[^|]*|/| **advertising.txt** | Ad networks and services | ${{ steps.stats.outputs.ad_domains }} |/g' README.md.tmp
+          sed -i 's/| \*\*tracking.txt\*\* | Analytics and tracking services |[^|]*|/| **tracking.txt** | Analytics and tracking services | ${{ steps.stats.outputs.tracking_domains }} |/g' README.md.tmp
+          sed -i 's/| \*\*malicious.txt\*\* | Malware, phishing, and scams |[^|]*|/| **malicious.txt** | Malware, phishing, and scams | ${{ steps.stats.outputs.malicious_domains }} |/g' README.md.tmp
+          sed -i 's/| \*\*suspicious.txt\*\* | Potentially unwanted content |[^|]*|/| **suspicious.txt** | Potentially unwanted content | ${{ steps.stats.outputs.suspicious_domains }} |/g' README.md.tmp
+          sed -i 's/| \*\*comprehensive.txt\*\* | Well-maintained multi-category lists |[^|]*|/| **comprehensive.txt** | Well-maintained multi-category lists | ${{ steps.stats.outputs.comprehensive_domains }} |/g' README.md.tmp
+          sed -i 's/| \*\*nsfw.txt\*\* | Adult content |[^|]*|/| **nsfw.txt** | Adult content | ${{ steps.stats.outputs.nsfw_domains }} |/g' README.md.tmp
+
+          # Update Latest Update section
+          sed -i 's/- \*\*Date\*\*: .*/- **Date**: ${{ steps.stats.outputs.update_date }}/g' README.md.tmp
+          sed -i 's/- \*\*Total domains\*\*: .*$/- **Total domains**: ${{ steps.stats.outputs.total_domains_formatted }}/g' README.md.tmp
+          sed -i 's/- \*\*Duplicates removed\*\*: .*$/- **Duplicates removed**: ${{ steps.stats.outputs.duplicates_formatted }}/g' README.md.tmp
+
+          mv README.md.tmp README.md
+          echo "✅ README updated"
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          mkdir -p lists
+
+          FILES=("all_domains.txt" "advertising.txt" "tracking.txt" "malicious.txt" "suspicious.txt" "comprehensive.txt" "nsfw.txt")
+          CHANGES_DETECTED=false
+          CHANGED_FILES=""
+
+          echo "📋 Checking for changes:"
+          for file in "${FILES[@]}"; do
+            if [ -f "optimizer/pihole_blocklists_prod/$file" ]; then
+              NEW_SIZE=$(du -h "optimizer/pihole_blocklists_prod/$file" | cut -f1)
+
+              if [ -f "lists/$file" ]; then
+                if ! cmp -s "optimizer/pihole_blocklists_prod/$file" "lists/$file"; then
+                  OLD_SIZE=$(du -h "lists/$file" | cut -f1)
+                  echo "  ✅ $file changed ($OLD_SIZE → $NEW_SIZE)"
+                  CHANGES_DETECTED=true
+                  CHANGED_FILES="$CHANGED_FILES $file"
+                  cp "optimizer/pihole_blocklists_prod/$file" "lists/$file"
+                else
+                  echo "  ℹ️ $file unchanged ($NEW_SIZE)"
+                fi
+              else
+                echo "  🆕 $file new ($NEW_SIZE)"
+                CHANGES_DETECTED=true
+                CHANGED_FILES="$CHANGED_FILES $file"
+                cp "optimizer/pihole_blocklists_prod/$file" "lists/$file"
+              fi
+            fi
+          done
+
+          echo "changes_detected=$CHANGES_DETECTED" >> $GITHUB_OUTPUT
+          echo "changed_files=$CHANGED_FILES" >> $GITHUB_OUTPUT
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/zachlagden/Pi-hole-Optimized-Blocklists.git
+
+      - name: Commit and push
+        if: steps.check_changes.outputs.changes_detected == 'true'
+        run: |
+          git add lists/*.txt README.md
+
+          if git diff --staged --quiet; then
+            echo "ℹ️ No changes to commit"
+          else
+            git commit -m "$(cat <<EOF
+          Weekly blocklist update $(date +%F)
+
+          - Total domains: ${{ steps.stats.outputs.total_domains_formatted }}
+          - Duplicates removed: ${{ steps.stats.outputs.duplicates_formatted }}
+          - Whitelist entries: ${{ steps.stats.outputs.whitelist_entries }}
+          - Updated:${{ steps.check_changes.outputs.changed_files }}
+          EOF
+          )"
+
+            git push
+            echo "✅ Changes pushed"
+          fi
+
+      - name: No changes
+        if: steps.check_changes.outputs.changes_detected != 'true'
+        run: echo "ℹ️ No changes detected"

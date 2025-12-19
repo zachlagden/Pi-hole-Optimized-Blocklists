@@ -3,7 +3,7 @@
 <div align="center">
 
 ![Total Domains](https://img.shields.io/badge/domains-6.8M%2B-blue?style=flat-square)
-![No Longer Updated](https://img.shields.io/badge/status-archived-red?style=flat-square)
+![Updated Weekly](https://img.shields.io/badge/updated-weekly-green?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)
 
 **Pre-optimized, deduplicated blocklists for [Pi-hole](https://pi-hole.net/)**
@@ -12,38 +12,11 @@
 
 ---
 
-> ## ⚠️ This Repository Is No Longer Updated
->
-> **This project has evolved into [Zach's Lists](https://lists.zachlagden.uk)** — a full-featured blocklist platform.
->
-> ### Migrate Now
->
-> Replace your current URLs with these (same lists, actively updated):
->
-> | Old URL | New URL |
-> |---------|---------|
-> | `.../lists/all_domains.txt` | `https://lists.zachlagden.uk/lists/all_domains.txt` |
-> | `.../lists/advertising.txt` | `https://lists.zachlagden.uk/lists/advertising.txt` |
-> | `.../lists/tracking.txt` | `https://lists.zachlagden.uk/lists/tracking.txt` |
-> | `.../lists/malicious.txt` | `https://lists.zachlagden.uk/lists/malicious.txt` |
-> | `.../lists/suspicious.txt` | `https://lists.zachlagden.uk/lists/suspicious.txt` |
-> | `.../lists/comprehensive.txt` | `https://lists.zachlagden.uk/lists/comprehensive.txt` |
->
-> ### Why Migrate?
->
-> - **Weekly updates** — these lists stay current
-> - **Faster delivery** — optimized hosting
-> - **Build your own** — create custom blocklists with your choice of sources
-> - **Smart whitelisting** — regex, wildcards, subdomain patterns
-> - **Multiple formats** — hosts, plain, and Adblock syntax
->
-> **[Visit Zach's Lists →](https://lists.zachlagden.uk)**
+> **Looking for more features?** Check out [Zach's Lists](https://lists.zachlagden.uk) — a full-featured blocklist platform with custom source selection, smart whitelisting, and multiple output formats.
 
 ---
 
-## Legacy Lists (No Longer Updated)
-
-These lists remain available but are frozen as of December 2025:
+## Available Lists
 
 | List | Description | Domains |
 |------|-------------|--------:|
@@ -59,24 +32,40 @@ These lists remain available but are frozen as of December 2025:
 
 ---
 
+## Quick Start
+
+1. Go to Pi-hole admin → **Settings** → **Adlists**
+2. Add the raw URL for your chosen list(s)
+3. Run `pihole -g` to update
+
+---
+
 ## FAQ
 
 <details>
-<summary><b>Will the old URLs keep working?</b></summary>
+<summary><b>What's the difference between this and Zach's Lists?</b></summary>
 
-Yes. The lists hosted here will remain available, but they won't receive updates. For actively maintained lists, use the new URLs at lists.zachlagden.uk.
+This repository provides static, pre-built blocklists updated weekly. [Zach's Lists](https://lists.zachlagden.uk) offers additional features:
+- Custom source selection — pick which blocklists to include
+- Smart whitelisting — regex, wildcards, subdomain patterns
+- Multiple formats — hosts, plain, and Adblock syntax
+- Real-time build progress
+
+Both use the same underlying sources and are maintained by the same person.
 </details>
 
 <details>
-<summary><b>How do I migrate?</b></summary>
+<summary><b>How often are these lists updated?</b></summary>
 
-In Pi-hole, go to **Settings → Adlists**, remove the old GitHub URL, and add the new lists.zachlagden.uk URL. Then run `pihole -g` to update.
+Every Sunday at midnight UTC via GitHub Actions.
 </details>
 
 <details>
-<summary><b>Can I build my own custom blocklist?</b></summary>
+<summary><b>Which list should I use?</b></summary>
 
-Yes! That's the main feature of [Zach's Lists](https://lists.zachlagden.uk). Sign in with GitHub, pick your sources, add whitelist patterns, and get a personalized blocklist URL.
+- **comprehensive.txt** — Good balance for most users
+- **all_domains.txt** — Maximum blocking (may cause false positives)
+- Individual category lists — If you want granular control
 </details>
 
 ---
@@ -84,11 +73,3 @@ Yes! That's the main feature of [Zach's Lists](https://lists.zachlagden.uk). Sig
 ## License
 
 MIT License — see [LICENCE](LICENCE) for details.
-
----
-
-<div align="center">
-
-**[Migrate to Zach's Lists →](https://lists.zachlagden.uk)**
-
-</div>
