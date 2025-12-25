@@ -102,6 +102,7 @@ dl.delivery.mp.microsoft.com
 geo-prod.do.dsp.mp.microsoft.com
 displaycatalog.mp.microsoft.com
 tsfe.trafficshaping.dsp.mp.microsoft.com
+ctldl.windowsupdate.com
 
 # Microsoft Store
 storeedgefd.dsx.mp.microsoft.com
