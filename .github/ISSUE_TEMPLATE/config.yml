@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Zach's Lists (Advanced)
+    url: https://lists.zachlagden.uk
+    about: For custom blocklist builds with your own source selection and whitelisting
+  - name: Pi-hole Documentation
+    url: https://docs.pi-hole.net/
+    about: General Pi-hole help and setup guides
