@@ -1,0 +1,76 @@
+name: False Positive Report
+description: Report a domain that shouldn't be blocked
+title: "[False Positive] "
+labels: ["whitelist"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a false positive! Please fill out the information below to help us investigate.
+
+  - type: input
+    id: domain
+    attributes:
+      label: Blocked Domain
+      description: The domain that is being incorrectly blocked
+      placeholder: "e.g. example.com or subdomain.example.com"
+    validations:
+      required: true
+
+  - type: input
+    id: service
+    attributes:
+      label: Service/Application Affected
+      description: What service or app stopped working?
+      placeholder: "e.g. Mullvad VPN, Cloudflare DNS, Banking app"
+    validations:
+      required: true
+
+  - type: textarea
+    id: symptoms
+    attributes:
+      label: What broke?
+      description: Describe what stopped working or how you discovered this
+      placeholder: "e.g. VPN won't connect, DNS queries failing, app shows error..."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: list
+    attributes:
+      label: Which blocklist are you using?
+      description: Select the list(s) you have enabled
+      multiple: true
+      options:
+        - all_domains.txt
+        - comprehensive.txt
+        - advertising.txt
+        - tracking.txt
+        - malicious.txt
+        - suspicious.txt
+        - nsfw.txt
+        - "Not sure / Custom setup"
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence (optional)
+      description: |
+        Any proof this is legitimate? e.g. Pi-hole query log showing the block, 
+        link to official documentation, WHOIS info, etc.
+      placeholder: "Pi-hole shows: example.com blocked by malicious.txt"
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: verification
+    attributes:
+      label: Verification
+      description: Please confirm the following
+      options:
+        - label: I have verified this domain is blocked by this project (not another blocklist)
+          required: true
+        - label: I believe this is a legitimate service that should not be blocked
+          required: true
