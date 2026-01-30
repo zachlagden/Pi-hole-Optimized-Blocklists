@@ -738,6 +738,9 @@ tracking.dpd.de
 # ============================================================================
 # BANKING & FINANCE (Add your specific bank if needed)
 # ============================================================================
+# Monzo (transactional email links)
+clicks.monzo.com
+
 # TSB Mobile
 h-sdk.online-metrix.net
 check2.tsb.co.uk
