@@ -64,6 +64,14 @@ Every Sunday at midnight UTC via GitHub Actions.
 - Individual category lists — If you want granular control
 </details>
 
+## Sponsors
+
+Thanks to everyone who supports this project. ❤️
+
+**One-Time**
+
+[![@rnsimmons](https://img.shields.io/badge/@rnsimmons-EA4AAA?style=flat&logo=github-sponsors&logoColor=white)](https://github.com/rnsimmons)
+
 ## Star History
 
 <a href="https://star-history.com/#zachlagden/Pi-hole-Optimized-Blocklists&Date">
