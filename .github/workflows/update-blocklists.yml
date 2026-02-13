@@ -17,36 +17,23 @@ jobs:
           token: ${{ secrets.GH_PAT }}
           fetch-depth: 0
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Install dependencies
+      - name: Download optimizer binary
         run: |
-          python -m pip install --upgrade pip
-          pip install requests tqdm
-          echo "✅ Python dependencies installed"
+          curl -fsSL -o pihole-optimizer \
+            https://github.com/zachlagden/Pi-hole-Blocklist-Optimizer/releases/latest/download/pihole-optimizer-linux-x86_64
+          chmod +x pihole-optimizer
+          echo "✅ Pi-hole Blocklist Optimizer downloaded"
+          ./pihole-optimizer --version
 
-      - name: Clone Optimizer repository
+      - name: Run optimizer
         run: |
-          git clone https://github.com/zachlagden/Pi-hole-Blocklist-Optimizer.git optimizer
-          echo "✅ Pi-hole-Blocklist-Optimizer cloned"
-
-      - name: Run Optimizer
-        run: |
-          # Copy config files to optimizer
-          cp blocklists.conf optimizer/
-          cp whitelist.txt optimizer/
-
-          cd optimizer
-          echo "🚀 Starting Pi-hole Blocklist Optimizer v2.0..."
+          echo "🚀 Starting Pi-hole Blocklist Optimizer..."
 
           # Run with all features:
-          # -t 8: Use 8 download threads
+          # -t 8: Use 8 concurrent download threads
           # --whitelist-report: Generate detailed whitelist report
           # --prod-dir: Output to production directory
-          python pihole_downloader.py \
+          ./pihole-optimizer \
             -t 8 \
             --whitelist-report \
             --prod-dir pihole_blocklists_prod
@@ -85,13 +72,13 @@ jobs:
           }
 
           # Count domains
-          ALL_DOMAINS=$(count_domains "optimizer/pihole_blocklists_prod/all_domains.txt")
-          AD_DOMAINS=$(count_domains "optimizer/pihole_blocklists_prod/advertising.txt")
-          TRACKING_DOMAINS=$(count_domains "optimizer/pihole_blocklists_prod/tracking.txt")
-          MALICIOUS_DOMAINS=$(count_domains "optimizer/pihole_blocklists_prod/malicious.txt")
-          SUSPICIOUS_DOMAINS=$(count_domains "optimizer/pihole_blocklists_prod/suspicious.txt")
-          COMPREHENSIVE_DOMAINS=$(count_domains "optimizer/pihole_blocklists_prod/comprehensive.txt")
-          NSFW_DOMAINS=$(count_domains "optimizer/pihole_blocklists_prod/nsfw.txt")
+          ALL_DOMAINS=$(count_domains "pihole_blocklists_prod/all_domains.txt")
+          AD_DOMAINS=$(count_domains "pihole_blocklists_prod/advertising.txt")
+          TRACKING_DOMAINS=$(count_domains "pihole_blocklists_prod/tracking.txt")
+          MALICIOUS_DOMAINS=$(count_domains "pihole_blocklists_prod/malicious.txt")
+          SUSPICIOUS_DOMAINS=$(count_domains "pihole_blocklists_prod/suspicious.txt")
+          COMPREHENSIVE_DOMAINS=$(count_domains "pihole_blocklists_prod/comprehensive.txt")
+          NSFW_DOMAINS=$(count_domains "pihole_blocklists_prod/nsfw.txt")
 
           # Count source lists and whitelist entries
           SOURCE_LISTS=$(grep -v "^#" blocklists.conf | grep -v "^$" | wc -l)
@@ -178,16 +165,16 @@ jobs:
 
           echo "📋 Checking for changes:"
           for file in "${FILES[@]}"; do
-            if [ -f "optimizer/pihole_blocklists_prod/$file" ]; then
-              NEW_SIZE=$(du -h "optimizer/pihole_blocklists_prod/$file" | cut -f1)
+            if [ -f "pihole_blocklists_prod/$file" ]; then
+              NEW_SIZE=$(du -h "pihole_blocklists_prod/$file" | cut -f1)
 
               if [ -f "lists/$file" ]; then
-                if ! cmp -s "optimizer/pihole_blocklists_prod/$file" "lists/$file"; then
+                if ! cmp -s "pihole_blocklists_prod/$file" "lists/$file"; then
                   OLD_SIZE=$(du -h "lists/$file" | cut -f1)
                   echo "  ✅ $file changed ($OLD_SIZE → $NEW_SIZE)"
                   CHANGES_DETECTED=true
                   CHANGED_FILES="$CHANGED_FILES $file"
-                  cp "optimizer/pihole_blocklists_prod/$file" "lists/$file"
+                  cp "pihole_blocklists_prod/$file" "lists/$file"
                 else
                   echo "  ℹ️ $file unchanged ($NEW_SIZE)"
                 fi
@@ -195,7 +182,7 @@ jobs:
                 echo "  🆕 $file new ($NEW_SIZE)"
                 CHANGES_DETECTED=true
                 CHANGED_FILES="$CHANGED_FILES $file"
-                cp "optimizer/pihole_blocklists_prod/$file" "lists/$file"
+                cp "pihole_blocklists_prod/$file" "lists/$file"
               fi
             fi
           done
