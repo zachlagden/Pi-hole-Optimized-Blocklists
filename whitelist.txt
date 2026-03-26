@@ -735,6 +735,9 @@ gdlp01.c-wss.com
 # DPD tracking
 tracking.dpd.de
 
+# Wiki.js Docs
+docs.requarks.io
+
 # ============================================================================
 # BANKING & FINANCE (Add your specific bank if needed)
 # ============================================================================
