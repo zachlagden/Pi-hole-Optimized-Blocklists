@@ -72,14 +72,6 @@ If you want to contribute directly rather than through an issue:
 - Reference the related issue where applicable (`Closes #123`)
 - Claude will automatically review your PR for domain validity, correct formatting, and duplicates
 
-## Using @claude
-
-You can mention `@claude` in any issue or PR comment to ask for help. Claude can:
-- Process domain requests that weren't auto-handled
-- Answer questions about the project
-- Analyse and attempt fixes for bug reports
-- Review and suggest improvements
-
 ## Licence
 
 By contributing, you agree that your contributions will be licensed under the same licence as the project.
