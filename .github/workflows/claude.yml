@@ -118,3 +118,6 @@ jobs:
           show_full_output: true
           additional_permissions: |
             actions: read
+          prompt: |
+            Follow the instructions in CLAUDE.md for handling issues in this repository.
+            When processing domain requests, always read CLAUDE.md first for the exact procedures.
