@@ -1,27 +1,29 @@
 name: Claude Code
 
 on:
+  issues:
+    types: [opened, assigned]
   issue_comment:
     types: [created]
   pull_request_review_comment:
     types: [created]
-  issues:
-    types: [opened, assigned]
   pull_request_review:
     types: [submitted]
 
 jobs:
-  claude:
-    if: |
-      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
-      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
+  auto-process:
+    if: >
+      github.event_name == 'issues' &&
+      github.event.action == 'opened' &&
+      (
+        contains(github.event.issue.labels.*.name, 'blocklist') ||
+        contains(github.event.issue.labels.*.name, 'whitelist')
+      )
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      pull-requests: read
-      issues: read
+      contents: write
+      pull-requests: write
+      issues: write
       id-token: write
       actions: read
     steps:
@@ -31,9 +33,118 @@ jobs:
           fetch-depth: 1
 
       - name: Run Claude Code
-        id: claude
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           additional_permissions: |
             actions: read
+          prompt: |
+            You are an automated assistant for the Pi-hole-Optimized-Blocklists project.
+            An issue has just been opened and you must process it automatically.
+
+            ## How this project works
+
+            - `blocklists.conf` contains URLs to upstream blocklist sources (format: `url|name|category`)
+            - `whitelist.txt` contains domains that should NOT be blocked (organized by section with comment headers)
+            - `custom/<category>.txt` files contain community-reported domains to block (one domain per line)
+            - The optimizer binary downloads all sources weekly and produces deduplicated output in `lists/`
+
+            ## Your task
+
+            Read the issue title, body, and labels to determine the request type, then act accordingly:
+
+            ### If the issue has the `blocklist` label (block a domain):
+            1. Extract the domain from the issue body (look for the "Domain" field)
+            2. Determine the category from the issue body (look for the "Category" field):
+               - "Malicious" → `custom/malicious.txt`
+               - "Advertising" → `custom/advertising.txt`
+               - "Tracking" → `custom/tracking.txt`
+               - "Suspicious" → `custom/suspicious.txt`
+               - "NSFW" → `custom/nsfw.txt`
+               - If unclear, default to `custom/malicious.txt`
+            3. Validate the domain looks legitimate (has a TLD, no spaces, no protocol prefix)
+            4. Check the domain is not already in any `custom/*.txt` file
+            5. Add the domain (lowercase, no trailing dot) to the appropriate `custom/<category>.txt` file, below the header comments
+            6. Create a PR with title: `feat(blocklist): add <domain> to <category> list`
+            7. PR body must include: what domain was added, which category, why (from the issue), and `Closes #<issue_number>`
+
+            ### If the issue has the `whitelist` label (false positive / unblock a domain):
+            1. Extract the domain from the issue body (look for the "Blocked Domain" field)
+            2. Extract the service name from the issue body (look for "Service/Application Affected")
+            3. Validate the domain looks legitimate
+            4. Check the domain is not already in `whitelist.txt`
+            5. Add the domain to `whitelist.txt` in the most appropriate existing section based on the service:
+               - If the service matches an existing section (Google, Microsoft, Apple, etc.), add it there
+               - If no section matches, add it under `# MISCELLANEOUS SERVICES` with a comment indicating what it's for
+            6. Create a PR with title: `fix(whitelist): add <domain> for <service>`
+            7. PR body must include: what domain was added, what service it fixes, and `Closes #<issue_number>`
+
+            ### General rules:
+            - Always create a new branch from main
+            - One domain change per PR
+            - Keep changes minimal — only modify the relevant file
+            - If the issue is unclear or missing required information, comment on the issue asking for clarification instead of creating a PR
+            - If the domain is already present, comment on the issue explaining it's already handled and close it
+
+  manual-invoke:
+    if: >
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
+      (github.event_name == 'issues' && github.event.action == 'assigned')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          assignee_trigger: zachlagden
+          additional_permissions: |
+            actions: read
+          prompt: |
+            You are an assistant for the Pi-hole-Optimized-Blocklists project.
+            You have been invoked manually via @claude mention or issue assignment.
+
+            ## How this project works
+
+            - `blocklists.conf` contains URLs to upstream blocklist sources (format: `url|name|category`)
+            - `whitelist.txt` contains domains that should NOT be blocked (organized by section with comment headers)
+            - `custom/<category>.txt` files contain community-reported domains to block (one domain per line)
+            - The optimizer binary downloads all sources weekly and produces deduplicated output in `lists/`
+            - `lists/*.txt` are Git LFS files — do NOT edit these directly
+
+            ## Handling domain requests
+
+            If asked to block a domain:
+            1. Add it to the appropriate `custom/<category>.txt` file (malicious, advertising, tracking, or suspicious)
+            2. Create a PR with title: `feat(blocklist): add <domain> to <category> list`
+            3. Reference the issue with `Closes #<issue_number>`
+
+            If asked to whitelist/unblock a domain:
+            1. Add it to `whitelist.txt` in the appropriate section
+            2. Create a PR with title: `fix(whitelist): add <domain> for <service>`
+            3. Reference the issue with `Closes #<issue_number>`
+
+            ## For bug reports or other requests
+            - Analyze the issue thoroughly
+            - If you can fix it (e.g. config changes, workflow fixes), create a branch and PR
+            - If you can't fix it, comment with your analysis and suggestions
+            - Use PR title format: `fix(<scope>): <description>`
+
+            ## General rules
+            - Always create a new branch from main
+            - Keep changes minimal
+            - Validate domains before adding (must have a TLD, no protocol prefix, no spaces)
+            - Check for duplicates before adding
+            - If information is missing, comment asking for clarification

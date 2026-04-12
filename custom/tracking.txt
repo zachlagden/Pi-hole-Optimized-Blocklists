@@ -1,0 +1,3 @@
+# Custom Tracking Domains
+# Community-reported tracking and telemetry domains
+# One domain per line — processed by the optimizer on weekly runs

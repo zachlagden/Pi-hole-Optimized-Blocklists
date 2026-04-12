@@ -37,6 +37,6 @@ body:
     id: additional
     attributes:
       label: Additional Context
-      description: Mockups, examples, or references that help explain the idea.
+      description: Examples, references, or anything else that helps explain the idea.
     validations:
       required: false

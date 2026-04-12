@@ -1,0 +1,3 @@
+# Custom Suspicious Domains
+# Community-reported suspicious domains (cryptojacking, etc.)
+# One domain per line — processed by the optimizer on weekly runs

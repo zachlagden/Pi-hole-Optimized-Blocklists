@@ -1,0 +1,3 @@
+# Custom Advertising Domains
+# Community-reported ad-serving domains
+# One domain per line — processed by the optimizer on weekly runs

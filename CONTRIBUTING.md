@@ -2,55 +2,84 @@
 
 Contributions are welcome. This document covers the basics.
 
-## Getting Started
+## Reporting Domains
+
+The most common contributions are domain reports. Use the issue templates provided and Claude will automatically create a PR for you to review.
+
+### Block a domain
+
+Use the **Block Domain** template. Provide:
+- The domain to block
+- The category (malicious, advertising, tracking, or suspicious)
+- Evidence or reasoning
+
+Claude will automatically add the domain to the appropriate `custom/<category>.txt` file and open a PR.
+
+### Report a false positive
+
+Use the **False Positive Report** template. Provide:
+- The domain being incorrectly blocked
+- The service or application affected
+- Which blocklist you're using
+
+Claude will automatically add the domain to `whitelist.txt` in the correct section and open a PR.
+
+### Report a bug
+
+Use the **Bug Report** template with as much detail as possible. Steps to reproduce are essential. Claude will analyse the issue and attempt a fix or comment with suggestions.
+
+## How It Works
+
+- `custom/<category>.txt` files hold community-reported domains to block (one domain per line)
+- `whitelist.txt` holds domains that should not be blocked (organised by service/section)
+- `blocklists.conf` holds URLs to upstream blocklist sources (`url|name|category` format)
+- The optimizer binary runs weekly, downloads all sources (including the custom lists via raw GitHub URL), and produces the deduplicated output in `lists/`
+- `lists/*.txt` are generated files tracked with Git LFS — **do not edit these directly**
+
+When your PR is merged, the domain change takes effect on the next weekly optimizer run (Sunday midnight UTC), or when a maintainer manually triggers the workflow.
+
+## Manual Contributions
+
+If you want to contribute directly rather than through an issue:
 
 1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/your-feature`
-3. Make your changes
+2. Create a branch: `git checkout -b feature/your-change`
+3. Make your changes:
+   - To block a domain: add it to the appropriate `custom/<category>.txt` file
+   - To whitelist a domain: add it to `whitelist.txt` in the matching section
+   - To add a new upstream source: add the URL to `blocklists.conf` in `url|name|category` format
 4. Commit using [Conventional Commits](https://www.conventionalcommits.org/):
    ```
-   feat(scope): add new feature
-   fix(scope): resolve bug with X
-   docs: update installation steps
+   feat(blocklist): add example.com to malicious list
+   fix(whitelist): add vpn.example.com for ExampleVPN
    ```
 5. Push to your fork and open a Pull Request
 
-## Branch Naming
+### Branch naming
 
 | Prefix | Use |
 | --- | --- |
-| `feature/<description>` | New features |
-| `fix/<description>` | Bug fixes |
+| `feature/<description>` | New features or domain additions |
+| `fix/<description>` | Bug fixes or whitelist additions |
 | `hotfix/<description>` | Urgent production fixes |
-| `refactor/<description>` | Code improvements |
 | `chore/<description>` | Maintenance tasks |
 
-## Code Standards
-
-- Write clear, readable code over clever code
-- Follow existing patterns in the codebase
-- Keep functions short and focused
-- Add comments explaining **why**, not **what**
-- Handle errors explicitly
-
-## Pull Requests
+### Pull request guidelines
 
 - Keep PRs focused on a single change
 - Write a clear title following conventional commit format
 - Fill in the PR template
-- Make sure CI passes before requesting review
-- Respond to review feedback promptly
+- Reference the related issue where applicable (`Closes #123`)
+- Claude will automatically review your PR for domain validity, correct formatting, and duplicates
 
-## Reporting Issues
+## Using @claude
 
-Use the issue templates provided:
+You can mention `@claude` in any issue or PR comment to ask for help. Claude can:
+- Process domain requests that weren't auto-handled
+- Answer questions about the project
+- Analyse and attempt fixes for bug reports
+- Review and suggest improvements
 
-- **Bug Report** -- for bugs and unexpected behaviour
-- **Feature Request** -- for new ideas and improvements
-- **False Positive Report** -- for domains that shouldn't be blocked
+## Licence
 
-Include as much detail as possible. Steps to reproduce are essential for bug reports.
-
-## License
-
-By contributing, you agree that your contributions will be licensed under the same license as the project.
+By contributing, you agree that your contributions will be licensed under the same licence as the project.

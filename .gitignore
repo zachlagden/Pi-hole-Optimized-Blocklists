@@ -1,48 +1,22 @@
-# Dependencies
-node_modules/
-__pycache__/
-*.pyc
-target/
-vendor/
+# OS
+.DS_Store
+Thumbs.db
 
-# Environment
-.env
-.env.*
-!.env.example
-
-# Build output
-dist/
-build/
-out/
-.next/
-
-# IDE
+# IDE / Editor
 .idea/
 .vscode/
 *.swp
 *.swo
 *~
 
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-logs/
-
-# Coverage
-coverage/
-htmlcov/
-.coverage
-
-# Secrets
+# Environment / Secrets
+.env
+.env.*
+!.env.example
 *.key
 *.pem
-secrets/
-credentials/
 
-# Optimizer working directories
+# Optimizer working directories (created during CI runs)
 pihole_blocklists/
 pihole_blocklists_prod/
 download_progress.json

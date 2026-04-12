@@ -36,6 +36,16 @@
 2. Add the raw URL for your chosen list(s)
 3. Run `pihole -g` to update
 
+## Report a Domain
+
+Found a domain that should be blocked or a false positive? Open an issue using one of the templates:
+
+- **[Block Domain](../../issues/new?template=block-domain.yml)** — request a malicious, ad, tracking, or suspicious domain to be blocked
+- **[False Positive](../../issues/new?template=false-positive.yml)** — report a legitimate domain that's being incorrectly blocked
+- **[Bug Report](../../issues/new?template=bug_report.yml)** — report a problem with the lists or automation
+
+Claude will automatically process your request and create a PR. The maintainer reviews and merges it, and the change takes effect on the next weekly update.
+
 ## FAQ
 
 <details>
@@ -53,7 +63,7 @@ Both use the same underlying sources and are maintained by the same person.
 <details>
 <summary><b>How often are these lists updated?</b></summary>
 
-Every Sunday at midnight UTC via GitHub Actions.
+Every Sunday at midnight UTC via GitHub Actions. Community-reported domains are included once their PR is merged before the next run.
 </details>
 
 <details>
@@ -64,9 +74,19 @@ Every Sunday at midnight UTC via GitHub Actions.
 - Individual category lists — If you want granular control
 </details>
 
+<details>
+<summary><b>How do community-reported domains work?</b></summary>
+
+Domains reported via issues are added to `custom/<category>.txt` files in the repo. These are referenced as sources in `blocklists.conf` via raw GitHub URLs, so the optimizer picks them up on the next weekly run just like any other upstream source.
+</details>
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to report domains, submit PRs, and use the automated workflows.
+
 ## Sponsors
 
-Thanks to everyone who supports this project. ❤️
+Thanks to everyone who supports this project.
 
 **One-Time**
 

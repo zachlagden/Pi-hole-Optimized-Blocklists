@@ -1,0 +1,3 @@
+# Custom Malicious Domains
+# Community-reported fake shops, scam sites, phishing domains
+# One domain per line — processed by the optimizer on weekly runs

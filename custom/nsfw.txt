@@ -1,0 +1,3 @@
+# Custom NSFW Domains
+# Community-reported adult content domains
+# One domain per line — processed by the optimizer on weekly runs

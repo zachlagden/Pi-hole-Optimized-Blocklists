@@ -1,0 +1,49 @@
+name: Block Domain
+description: Request a domain to be added to the blocklist
+title: "Block "
+labels: ["blocklist"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve the blocklists! Please provide the domain and as much context as you can.
+
+  - type: input
+    id: domain
+    attributes:
+      label: Domain
+      description: The domain to block (e.g. malicious-site.com)
+      placeholder: "example.com"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      description: What type of domain is this?
+      options:
+        - Malicious (fake shops, scams, phishing)
+        - Advertising (ad-serving domains)
+        - Tracking (telemetry, analytics)
+        - Suspicious (cryptojacking, etc.)
+        - NSFW (adult content)
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence / Reason
+      description: Why should this domain be blocked? Include links, reports, or screenshots if possible.
+      placeholder: "e.g. This is a fake webshop cloning a legitimate brand, reported to hosting provider with no response..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other information that might help.
+    validations:
+      required: false

@@ -12,13 +12,12 @@
 
 <!-- Link any related issues: Fixes #123, Closes #456 -->
 
-## Testing
+## Review Checklist
 
-<!-- How was this tested? What should reviewers check? -->
-
-- [ ] Tests pass locally
-- [ ] Linting passes
-- [ ] Manually tested the changes
+- [ ] Domain format is valid (lowercase, no protocol, has a TLD)
+- [ ] No duplicate entries
+- [ ] Correct file modified (`custom/*.txt` for blocks, `whitelist.txt` for false positives)
+- [ ] Related issue is linked
 
 ## Notes
 
