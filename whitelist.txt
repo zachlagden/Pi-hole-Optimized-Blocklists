@@ -861,6 +861,16 @@ api.ipgeolocation.io
 #OPTIONAL: cdn.amplitude.com
 
 # ============================================================================
+# REPORTED FALSE POSITIVES
+# ============================================================================
+# Domains reported by users as incorrectly blocked by upstream sources.
+# Each entry should reference the GitHub issue it resolves.
+
+# Hungarian tool/hardware retailer ("Puma Tools, Csömör")
+# Flagged by Hagezi TIF; verified legitimate ecommerce site. (#19)
+pumatools.hu
+
+# ============================================================================
 # REGEX PATTERNS
 # ============================================================================
 # Google Push Notifications (all alternates)
