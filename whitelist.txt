@@ -870,6 +870,13 @@ api.ipgeolocation.io
 # Flagged by Hagezi TIF; verified legitimate ecommerce site. (#19)
 pumatools.hu
 
+# Backblaze B2 download / native-API host for the us-east-005 storage cluster.
+# Shared infrastructure (serves /file/<bucket>/... for all tenants), not a
+# user-owned bucket; blocking it breaks B2 backups. Verified against Backblaze
+# IP space and live API behaviour. Abuse buckets keep their own
+# <bucket>.s3.us-east-005.backblazeb2.com hostnames and stay blocked. (#23)
+f005.backblazeb2.com
+
 # ============================================================================
 # REGEX PATTERNS
 # ============================================================================
