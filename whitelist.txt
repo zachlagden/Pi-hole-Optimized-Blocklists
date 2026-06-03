@@ -877,6 +877,12 @@ pumatools.hu
 # <bucket>.s3.us-east-005.backblazeb2.com hostnames and stay blocked. (#23)
 f005.backblazeb2.com
 
+# GLS eCsomag — GLS Hungary's official parcel-sending portal.
+# Flagged only by the jarelllama scam list; verified legitimate: hosted on
+# GLS Hungary IP space (82.141.140.12) and GLS nameservers (ns1/ns2.gls-hungary.com),
+# registered 2015. Single-source upstream false positive. (#25)
+ecsomag.hu
+
 # ============================================================================
 # REGEX PATTERNS
 # ============================================================================
