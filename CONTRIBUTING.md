@@ -4,7 +4,7 @@ Contributions are welcome. This document covers the basics.
 
 ## Reporting Domains
 
-The most common contributions are domain reports. Use the issue templates provided and Claude will automatically create a PR for you to review.
+The most common contributions are domain reports. Use the issue templates provided and the maintainer will review your report and open a PR.
 
 ### Block a domain
 
@@ -13,7 +13,7 @@ Use the **Block Domain** template. Provide:
 - The category (malicious, advertising, tracking, or suspicious)
 - Evidence or reasoning
 
-Claude will automatically add the domain to the appropriate `custom/<category>.txt` file and open a PR.
+The maintainer will verify the domain and add it to the appropriate `custom/<category>.txt` file via a PR.
 
 ### Report a false positive
 
@@ -22,11 +22,11 @@ Use the **False Positive Report** template. Provide:
 - The service or application affected
 - Which blocklist you're using
 
-Claude will automatically add the domain to `whitelist.txt` in the correct section and open a PR.
+The maintainer will verify the report and add the domain to `whitelist.txt` in the correct section via a PR.
 
 ### Report a bug
 
-Use the **Bug Report** template with as much detail as possible. Steps to reproduce are essential. Claude will analyse the issue and attempt a fix or comment with suggestions.
+Use the **Bug Report** template with as much detail as possible. Steps to reproduce are essential. The maintainer will investigate and either fix the problem or follow up with questions.
 
 ## How It Works
 
@@ -70,7 +70,7 @@ If you want to contribute directly rather than through an issue:
 - Write a clear title following conventional commit format
 - Fill in the PR template
 - Reference the related issue where applicable (`Closes #123`)
-- Claude will automatically review your PR for domain validity, correct formatting, and duplicates
+- The maintainer will review your PR for domain validity, correct formatting, and duplicates
 
 ## Licence
 
