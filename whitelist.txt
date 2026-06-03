@@ -883,6 +883,12 @@ f005.backblazeb2.com
 # registered 2015. Single-source upstream false positive. (#25, PR #26)
 ecsomag.hu
 
+# ServerElite (MARAELITE Kft) — established Hungarian refurbished enterprise-server shop.
+# Flagged only by the jarelllama scam list; verified legitimate: domain registered 2017,
+# Microsoft 365 business email, real OpenCart storefront, and listed by FT/Statista among
+# Europe's fastest-growing companies (2024). Single-source upstream false positive. (#29, PR #30)
+serverelite.hu
+
 # ============================================================================
 # REGEX PATTERNS
 # ============================================================================
