@@ -1,5 +1,9 @@
 # Custom Malicious Domains
 # Community-reported fake shops, scam sites, phishing domains
 # One domain per line — processed by the optimizer on weekly runs
+# Comment lines (#) are ignored by the optimizer; each entry references its issue + PR.
+
+# Fake shop (#17, PR #18)
 mbenergyholz.de
+# Typosquat of github.com — redirects to fake antivirus / DDoS-Guard scam pages (#21, PR #22)
 gihub.com
