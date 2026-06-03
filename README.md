@@ -44,7 +44,7 @@ Found a domain that should be blocked or a false positive? Open an issue using o
 - **[False Positive](../../issues/new?template=false-positive.yml)** — report a legitimate domain that's being incorrectly blocked
 - **[Bug Report](../../issues/new?template=bug_report.yml)** — report a problem with the lists or automation
 
-Claude will automatically process your request and create a PR. The maintainer reviews and merges it, and the change takes effect on the next weekly update.
+The maintainer reviews each report, verifies it, and opens a PR. Once merged, the change takes effect on the next weekly update.
 
 ## FAQ
 
