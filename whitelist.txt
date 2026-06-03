@@ -886,7 +886,7 @@ ecsomag.hu
 # ServerElite (MARAELITE Kft) — established Hungarian refurbished enterprise-server shop.
 # Flagged only by the jarelllama scam list; verified legitimate: domain registered 2017,
 # Microsoft 365 business email, real OpenCart storefront, and listed by FT/Statista among
-# Europe's fastest-growing companies (2024). Single-source upstream false positive. (#29)
+# Europe's fastest-growing companies (2024). Single-source upstream false positive. (#29, PR #30)
 serverelite.hu
 
 # ============================================================================
