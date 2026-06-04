@@ -7,3 +7,9 @@
 mbenergyholz.de
 # Typosquat of github.com — redirects to fake antivirus / DDoS-Guard scam pages (#21, PR #22)
 gihub.com
+# Netflix typosquat ("netflxi" ↔ "netflix") parked on Above.com; cloaks scanners and
+# redirects real browsers through a malicious chain to yexyed.com / novugs.com. yexyed
+# shares netflxi's Above.com redirect /24; both targets are 2026 throwaway domains. (#31, PR #32)
+netflxi.com
+yexyed.com
+novugs.com
