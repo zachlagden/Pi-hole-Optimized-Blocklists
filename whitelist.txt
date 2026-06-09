@@ -920,6 +920,14 @@ serverelite.hu
 # Microsoft telemetry subdomains (specific ones needed for functionality)
 /^v[0-9]+\.events\.data\.microsoft\.com$/
 
+# AdsPower — legitimate anti-detect / multi-account browser service. Hagezi Pro lists
+# its app/telemetry domains (apex + subdomains incl. sentry/logger/activity), which
+# breaks the app. Covers apex + all subdomains, incl. the Russian domain adspower-ru.com.
+# Does NOT match adspowertrack.digital, which stays blocked. (#33)
+/(\.|^)adspower\.com$/
+/(\.|^)adspower\.net$/
+/(\.|^)adspower-ru\.com$/
+
 # ============================================================================
 # WILDCARD PATTERNS
 # ============================================================================
