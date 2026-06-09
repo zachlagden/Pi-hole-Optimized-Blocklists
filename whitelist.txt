@@ -1,5 +1,5 @@
 # Zach's Lists - Default Whitelist
-# Last Updated: 26/03/2025 - 10:22 - It was my birthday yesterday!
+# Last Updated: 09/06/2026 - 14:38 - Allowlisted AdsPower; recent false-positive fixes (GLS eCsomag, ServerElite, Backblaze f005)
 
 # ============================================================================
 # GOOGLE SERVICES
