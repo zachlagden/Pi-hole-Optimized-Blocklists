@@ -31,6 +31,7 @@ Use the **Bug Report** template with as much detail as possible. Steps to reprod
 ## How It Works
 
 - `custom/<category>.txt` files hold community-reported domains to block (one domain per line)
+- Custom lists support wildcard blocking: a line `||example.com^` (or the shorthand `*.example.com`) blocks `example.com` **and all its subdomains**, while a plain `example.com` blocks only that exact host. Wildcards apply to `custom/*.txt` only.
 - `whitelist.txt` holds domains that should not be blocked (organised by service/section)
 - `blocklists.conf` holds URLs to upstream blocklist sources (`url|name|category` format)
 - The optimizer binary runs weekly, downloads all sources (including the custom lists via raw GitHub URL), and produces the deduplicated output in `lists/`

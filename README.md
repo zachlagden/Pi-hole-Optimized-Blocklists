@@ -36,6 +36,8 @@
 2. Add the raw URL for your chosen list(s)
 3. Run `pihole -g` to update
 
+> The lists may include ABP-style entries (`||domain^`) that block a domain and all its subdomains. These require Pi-hole Core ≥ 5.16 / FTL ≥ 5.22 (released 2023; standard on current installs). Note that `pihole -q` won't enumerate the individual subdomains covered by an ABP entry.
+
 ## Report a Domain
 
 Found a domain that should be blocked or a false positive? Open an issue using one of the templates:
