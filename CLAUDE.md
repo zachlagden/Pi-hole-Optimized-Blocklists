@@ -86,6 +86,7 @@ When running as a GitHub Actions agent processing issues, follow these procedure
 4. Validate the domain: must contain at least one dot, no spaces, no path components
 5. Check the domain is not already in any `custom/*.txt` file or `whitelist.txt`
 6. Append the domain on a new line at the end of the appropriate `custom/<category>.txt`
+   - To block a domain **and all its subdomains** (e.g. a tracking SDK that uses many hashed subdomains), append `||<domain>^` instead of the bare domain. A plain `<domain>` blocks only the exact host. Reporter requests written as `*.<domain>` map to `||<domain>^`.
 7. Create a PR:
    - Title: `feat(blocklist): add <domain> to <category> list`
    - Body: explain what was added, why, and include `Closes #<issue_number>`
