@@ -1,3 +1,5 @@
 # Custom Tracking Domains
 # Community-reported tracking and telemetry domains
 # One domain per line — processed by the optimizer on weekly runs
+# AppsFlyer mobile attribution / tracking SDK — apex + all subdomains (#38, PR #43)
+||appsflyersdk.com^
