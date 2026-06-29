@@ -3,3 +3,5 @@
 # One domain per line — processed by the optimizer on weekly runs
 # Aditude Prebid Server — server-side header-bidding ad endpoint (#36, PR #41)
 aditude.prebid-server.com
+# Vungle (Liftoff) mobile ad-serving network — apex + all subdomains (#35, PR #42)
+||ads.vungle.com^
