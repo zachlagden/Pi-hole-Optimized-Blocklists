@@ -1,3 +1,5 @@
 # Custom Advertising Domains
 # Community-reported ad-serving domains
 # One domain per line — processed by the optimizer on weekly runs
+# Aditude Prebid Server — server-side header-bidding ad endpoint (#36, PR #41)
+aditude.prebid-server.com
