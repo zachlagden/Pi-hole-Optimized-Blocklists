@@ -10,6 +10,9 @@
 
 </div>
 
+> [!NOTE]
+> **New — `nsfw_abp.txt`, a subdomain-blocking NSFW list.** An ABP-format version of `nsfw.txt` that blocks adult domains **and all their subdomains** (e.g. `cdn.example.com` as well as `example.com`) for more complete filtering. Requires Pi-hole Core ≥ 5.16 / FTL ≥ 5.22. See [Available Lists](#available-lists).
+
 > **Looking for more features?** Check out [Zach's Lists](https://lists.zachlagden.uk) — a full-featured blocklist platform with custom source selection, smart whitelisting, and multiple output formats.
 
 ---
@@ -25,8 +28,9 @@
 | **[suspicious.txt](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/main/lists/suspicious.txt)** | Potentially unwanted | 60,349 |
 | **[comprehensive.txt](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/main/lists/comprehensive.txt)** | Curated multi-category | 888,685 |
 | **[nsfw.txt](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/main/lists/nsfw.txt)** | Adult content (separate) | 339,662 |
+| **[nsfw_abp.txt](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/main/lists/nsfw_abp.txt)** | Adult content — ABP format, blocks subdomains too | 339,662 |
 
-> **Note:** `nsfw.txt` is **not** included in `all_domains.txt` because it blocks legitimate adult sites. Add it separately if you want NSFW blocking.
+> **Note:** `nsfw.txt` is **not** included in `all_domains.txt` because it blocks legitimate adult sites. Add it separately if you want NSFW blocking. `nsfw_abp.txt` is the same domains in ABP form (`||domain^`) so subdomains are blocked too — use it instead of `nsfw.txt` for more thorough filtering (needs Pi-hole Core ≥ 5.16).
 
 **Last updated**: June 28, 2026
 

@@ -36,6 +36,7 @@ jobs:
           ./pihole-optimizer \
             -t 8 \
             --whitelist-report \
+            --abp-lists nsfw \
             --prod-dir pihole_blocklists_prod
 
           # Verify output
@@ -149,6 +150,7 @@ jobs:
           /\[suspicious\.txt\]/ { gsub(/[0-9,]+ \|$/, sus " |") }
           /\[comprehensive\.txt\]/ { gsub(/[0-9,]+ \|$/, comp " |") }
           /\[nsfw\.txt\]/ { gsub(/[0-9,]+ \|$/, nsfw " |") }
+          /\[nsfw_abp\.txt\]/ { gsub(/[0-9,]+ \|$/, nsfw " |") }
           { print }
           ' README.md > README.md.tmp && mv README.md.tmp README.md
 
@@ -159,7 +161,7 @@ jobs:
         run: |
           mkdir -p lists
 
-          FILES=("all_domains.txt" "advertising.txt" "tracking.txt" "malicious.txt" "suspicious.txt" "comprehensive.txt" "nsfw.txt")
+          FILES=("all_domains.txt" "advertising.txt" "tracking.txt" "malicious.txt" "suspicious.txt" "comprehensive.txt" "nsfw.txt" "nsfw_abp.txt")
           CHANGES_DETECTED=false
           CHANGED_FILES=""
 
