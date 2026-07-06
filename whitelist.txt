@@ -1,5 +1,5 @@
 # Zach's Lists - Default Whitelist
-# Last Updated: 09/06/2026 - 14:38 - Allowlisted AdsPower; recent false-positive fixes (GLS eCsomag, ServerElite, Backblaze f005)
+# Last Updated: 06/07/2026 - 09:04 UTC - Allowlisted commbank.com.au (Commonwealth Bank of Australia false positive, jarelllama feed)
 
 # ============================================================================
 # GOOGLE SERVICES
@@ -888,6 +888,14 @@ ecsomag.hu
 # Microsoft 365 business email, real OpenCart storefront, and listed by FT/Statista among
 # Europe's fastest-growing companies (2024). Single-source upstream false positive. (#29, PR #30)
 serverelite.hu
+
+# Commonwealth Bank of Australia — official domain of Australia's largest bank (ASX: CBA).
+# Flagged only by the jarelllama scam list (||commbank.com.au^); the other ~50 "commbank*"
+# entries in the feeds are genuine typosquats/phishing and stay blocked. Verified legitimate:
+# WHOIS registrant is Commonwealth Bank of Australia, and it is listed on the Australian
+# government finance.gov.au register. Same single-source feed that false-positived #25/#29.
+# Subdomain matching also covers www/netbank. (#46, PR #47)
+commbank.com.au
 
 # ============================================================================
 # REGEX PATTERNS
