@@ -1,5 +1,5 @@
 # Zach's Lists - Default Whitelist
-# Last Updated: 06/07/2026 - 09:04 UTC - Allowlisted commbank.com.au (Commonwealth Bank of Australia false positive, jarelllama feed)
+# Last Updated: 08/07/2026 - 10:42 UTC - Allowlisted norwex.com (cleaning-products retailer miscategorised by OISD NSFW list)
 
 # ============================================================================
 # GOOGLE SERVICES
@@ -896,6 +896,12 @@ serverelite.hu
 # government finance.gov.au register. Same single-source feed that false-positived #25/#29.
 # Subdomain matching also covers www/netbank. (#46, PR #47)
 commbank.com.au
+
+# Norwex — legitimate eco-friendly cleaning-products retailer (microfibre cloths, direct
+# sales, est. 1994). Miscategorised by the OISD NSFW list (||norwex.com^); the site is a
+# live storefront (norwex.com -> www.norwex.com, HTTP 200) with no adult content. Single-
+# source NSFW false positive; whitelisting removes it from nsfw.txt and nsfw_abp.txt. (#48, PR #49)
+norwex.com
 
 # ============================================================================
 # REGEX PATTERNS
