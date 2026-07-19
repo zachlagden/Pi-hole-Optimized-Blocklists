@@ -1,5 +1,5 @@
 # Zach's Lists - Default Whitelist
-# Last Updated: 08/07/2026 - 10:42 UTC - Allowlisted norwex.com (cleaning-products retailer miscategorised by OISD NSFW list)
+# Last Updated: 19/07/2026 - 16:03 UTC - Allowlisted taxpolicy.org.uk (Tax Policy Associates; jarelllama/ScamMinder false positive)
 
 # ============================================================================
 # GOOGLE SERVICES
@@ -902,6 +902,14 @@ commbank.com.au
 # live storefront (norwex.com -> www.norwex.com, HTTP 200) with no adult content. Single-
 # source NSFW false positive; whitelisting removes it from nsfw.txt and nsfw_abp.txt. (#48, PR #49)
 norwex.com
+
+# Tax Policy Associates Ltd — UK non-profit tax-policy think tank and investigative journalism
+# (live site, HTTP 200, "the independent tax think tank"). Flagged only by the jarelllama scam
+# list (||taxpolicy.org.uk^), which traces upstream to ScamMinder — now rating the domain 100/100,
+# so the original signal no longer holds. Absent from phishing.army, Hagezi TIF/fake, curbengh and
+# Spam404. Reported by the domain owner. Fourth single-source FP from this feed (cf. #25, #29, #46).
+# Unrelated lookalikes such as taxpolicyapi.xyz are separate domains and stay blocked. (#50, PR #51)
+taxpolicy.org.uk
 
 # ============================================================================
 # REGEX PATTERNS
