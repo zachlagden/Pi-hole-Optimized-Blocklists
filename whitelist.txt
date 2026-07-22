@@ -1,5 +1,5 @@
 # Zach's Lists - Default Whitelist
-# Last Updated: 19/07/2026 - 16:03 UTC - Allowlisted taxpolicy.org.uk (Tax Policy Associates; jarelllama/ScamMinder false positive)
+# Last Updated: 22/07/2026 - 13:57 UTC - Allowlisted genspark.ai (Genspark/MainFunc AI platform; phishing.army false positive)
 
 # ============================================================================
 # GOOGLE SERVICES
@@ -910,6 +910,14 @@ norwex.com
 # Spam404. Reported by the domain owner. Fourth single-source FP from this feed (cf. #25, #29, #46).
 # Unrelated lookalikes such as taxpolicyapi.xyz are separate domains and stay blocked. (#50, PR #51)
 taxpolicy.org.uk
+
+# Genspark — AI search/agent platform operated by MainFunc, Inc. (Palo Alto; mainfunc.ai).
+# genspark.ai + www.genspark.ai were flagged only by phishing.army (extended) — absent from
+# jarelllama, Hagezi TIF/fake, curbengh, Spam404, URLhaus, Dandelion — likely collateral from
+# abuse of Genspark's SEPARATE user-content domain gensparkspace.com, which is deliberately
+# NOT whitelisted and stays blocked (reporter explicitly scoped it out). Subdomain matching
+# covers www. Single-source upstream false positive. (#52, PR #53)
+genspark.ai
 
 # ============================================================================
 # REGEX PATTERNS
