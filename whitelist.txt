@@ -1,5 +1,5 @@
 # Zach's Lists - Default Whitelist
-# Last Updated: 22/07/2026 - 13:57 UTC - Allowlisted genspark.ai (Genspark/MainFunc AI platform; phishing.army false positive)
+# Last Updated: 27/07/2026 - 12:21 UTC - Allowlisted chat.z.ai (Z.ai/Zhipu GLM chat frontend; phishing.army false positive)
 
 # ============================================================================
 # GOOGLE SERVICES
@@ -918,6 +918,13 @@ taxpolicy.org.uk
 # NOT whitelisted and stays blocked (reporter explicitly scoped it out). Subdomain matching
 # covers www. Single-source upstream false positive. (#52, PR #53)
 genspark.ai
+
+# Z.ai (Zhipu AI) — chat.z.ai is the official GLM chat/agent frontend (live, HTTP 200,
+# "Z.ai - Advanced AI Chatbot & Agent powered by GLM"). Flagged only by phishing.army
+# (extended) — absent from jarelllama, Hagezi TIF/fake, curbengh, Spam404, URLhaus,
+# Dandelion. Only z.ai host in our lists (apex not blocked). Single-source FP; second
+# from phishing.army after genspark.ai (#52). (#54, PR #55)
+chat.z.ai
 
 # ============================================================================
 # REGEX PATTERNS
