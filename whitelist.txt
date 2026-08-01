@@ -1,5 +1,5 @@
 # Zach's Lists - Default Whitelist
-# Last Updated: 27/07/2026 - 12:21 UTC - Allowlisted chat.z.ai (Z.ai/Zhipu GLM chat frontend; phishing.army false positive)
+# Last Updated: 01/08/2026 - 21:53 UTC - Allowlisted ergomech.store (ergonomic keyboard shop; HaGeZi TIF false positive, delisted upstream)
 
 # ============================================================================
 # GOOGLE SERVICES
@@ -925,6 +925,14 @@ genspark.ai
 # Dandelion. Only z.ai host in our lists (apex not blocked). Single-source FP; second
 # from phishing.army after genspark.ai (#52). (#54, PR #55)
 chat.z.ai
+
+# Ergomech Store — small-business Odoo e-commerce site selling hand-assembled split ergonomic
+# mechanical keyboards. Aged domain (registered 2020, Cloudflare); reporter traced the block to
+# HaGeZi TIF (||ergomech.store^) and filed an upstream FP report — it is no longer present in the
+# current HaGeZi TIF feed, so it appears already delisted upstream. Not in any live feed checked
+# (jarelllama, phishing.army, Hagezi TIF/fake, curbengh, Spam404, URLhaus, Dandelion). Durable
+# whitelist so it stays excluded even if a cached upstream copy lingers. (#56, PR #58)
+ergomech.store
 
 # ============================================================================
 # REGEX PATTERNS
