@@ -1,5 +1,5 @@
 # Zach's Lists - Default Whitelist
-# Last Updated: 01/08/2026 - 21:53 UTC - Allowlisted ergomech.store (ergonomic keyboard shop; HaGeZi TIF false positive, delisted upstream)
+# Last Updated: 02/08/2026 - Allowlisted rei.com (REI Co-op outdoor retailer; jarelllama scam-list false positive)
 
 # ============================================================================
 # GOOGLE SERVICES
@@ -933,6 +933,14 @@ chat.z.ai
 # (jarelllama, phishing.army, Hagezi TIF/fake, curbengh, Spam404, URLhaus, Dandelion). Durable
 # whitelist so it stays excluded even if a cached upstream copy lingers. (#56, PR #58)
 ergomech.store
+
+# REI Co-op (Recreational Equipment, Inc.) — major US outdoor-gear retail co-op, member-owned
+# since 1938. rei.com is the official storefront: aged domain (registered 1996), corporate
+# brand-protection registrar (CSC Corporate Domains) and enterprise DNS (UltraDNS). Flagged only
+# by the jarelllama scam list (||rei.com^) — absent from phishing.army, Hagezi TIF/fake, curbengh,
+# Spam404, URLhaus, Dandelion. Fifth single-source FP from this feed (cf. #25, #29, #46, #50).
+# Apex was the only rei.com host blocked; subdomain matching covers www. (#59, PR #60)
+rei.com
 
 # ============================================================================
 # REGEX PATTERNS
