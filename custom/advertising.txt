@@ -5,3 +5,8 @@
 aditude.prebid-server.com
 # Vungle (Liftoff) mobile ad-serving network — apex + all subdomains (#35, PR #42)
 ||ads.vungle.com^
+# scientificfor.com — ad-serving/redirect domain caught in a HuffPost banner ad (inspected element).
+# Young throwaway domain (registered 2026-02-18, GoDaddy/Cloudflare), 404 at apex — no real site.
+# Already flagged by hagezi Pro + oisd Big (so live in comprehensive/all_domains); this extends the
+# block to the advertising category list. Apex + all subdomains (#61, PR #64)
+||scientificfor.com^
