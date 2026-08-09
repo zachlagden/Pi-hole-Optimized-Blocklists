@@ -1,5 +1,5 @@
 # Zach's Lists - Default Whitelist
-# Last Updated: 02/08/2026 - Allowlisted rei.com (REI Co-op outdoor retailer; jarelllama scam-list false positive)
+# Last Updated: 07/08/2026 - Allowlisted whatcomsoccer.com (Whatcom County youth soccer org; HaGeZi TIF false positive)
 
 # ============================================================================
 # GOOGLE SERVICES
@@ -941,6 +941,14 @@ ergomech.store
 # Spam404, URLhaus, Dandelion. Fifth single-source FP from this feed (cf. #25, #29, #46, #50).
 # Apex was the only rei.com host blocked; subdomain matching covers www. (#59, PR #60)
 rei.com
+
+# Whatcom County Soccer — local youth-soccer organisation in Whatcom County, WA (live WordPress
+# site titled "Home of Whatcom County Soccer", HTTP 200). Aged domain (registered 1999), WA
+# registrant, Google/Squarespace infra. Flagged only by HaGeZi TIF (||whatcomsoccer.com^) — absent
+# from jarelllama, phishing.army, urlhaus, curbengh, Spam404 and Dandelion. Most likely a transient
+# TIF listing from a past WordPress compromise (a prime injection target); the site is currently
+# clean. Apex was the only host blocked. (#63, PR #65)
+whatcomsoccer.com
 
 # ============================================================================
 # REGEX PATTERNS
