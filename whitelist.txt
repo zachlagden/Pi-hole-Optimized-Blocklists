@@ -1,5 +1,5 @@
 # Zach's Lists - Default Whitelist
-# Last Updated: 07/08/2026 - Allowlisted whatcomsoccer.com (Whatcom County youth soccer org; HaGeZi TIF false positive)
+# Last Updated: 17/08/2026 - Allowlisted thefrenchghosty.me (owner's personal site; jarelllama scam-list false positive)
 
 # ============================================================================
 # GOOGLE SERVICES
@@ -949,6 +949,14 @@ rei.com
 # TIF listing from a past WordPress compromise (a prime injection target); the site is currently
 # clean. Apex was the only host blocked. (#63, PR #65)
 whatcomsoccer.com
+
+# TheFrenchGhosty's personal website — live site (HTTP 200), aged domain (registered 2022-06-23,
+# Porkbun + Gcore CDN), reported by the domain owner. Flagged only by the jarelllama scam list
+# (||thefrenchghosty.me^, added 2024) — absent from phishing.army, HaGeZi TIF/fake, curbengh,
+# Spam404, URLhaus and Dandelion. Owner documents the feed's indiscriminate blocking of
+# newly-registered domains (cf. blocklistproject/Lists#2152). Sixth single-source FP from this
+# feed (cf. #25, #29, #46, #50, #59). Apex was the only host blocked. (#66, PR #68)
+thefrenchghosty.me
 
 # ============================================================================
 # REGEX PATTERNS
