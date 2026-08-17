@@ -13,3 +13,19 @@ gihub.com
 netflxi.com
 yexyed.com
 novugs.com
+# Fake RingGo (UK parking payments) phishing cluster — harvests logins + payment-card details via
+# fake "/uk/" checkout pages. Two credential-capture kit hosts (RingGo typosquats) plus redirectors
+# that funnel victims into them; confirmed live redirect chains at time of report (maintainer report):
+#   my-ringgo.com     — kit host, typosquat, registered 2026-08-01, Cloudflare, live /uk/index.php
+#   ringgo-portal.ink — second kit host, typosquat (.ink), /uk/?ref= landing
+#   baudirdeinregal.de — redirector → my-ringgo.com/uk/index.php?id=…
+#   halaalstyle.com   — compromised aged site (2018) redirecting → ringgo-portal.ink/uk/?ref=… (review if remediated)
+#   awadio.pl         — related redirector/staging node (Cloudflare)
+#   lamanucure.de     — phishing sender infrastructure (mail@lamanucure.de)
+# Apex + all subdomains (ABP). (maintainer report, PR #67)
+||my-ringgo.com^
+||ringgo-portal.ink^
+||baudirdeinregal.de^
+||halaalstyle.com^
+||awadio.pl^
+||lamanucure.de^
