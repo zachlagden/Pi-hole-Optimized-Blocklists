@@ -1,5 +1,5 @@
 # Zach's Lists - Default Whitelist
-# Last Updated: 17/08/2026 - Allowlisted thefrenchghosty.me (owner's personal site; jarelllama scam-list false positive)
+# Last Updated: 18/08/2026 - Allowlisted alexhyett.com (owner's software-engineering blog; oisd NSFW false positive)
 
 # ============================================================================
 # GOOGLE SERVICES
@@ -957,6 +957,13 @@ whatcomsoccer.com
 # newly-registered domains (cf. blocklistproject/Lists#2152). Sixth single-source FP from this
 # feed (cf. #25, #29, #46, #50, #59). Apex was the only host blocked. (#66, PR #68)
 thefrenchghosty.me
+
+# Alex Hyett — personal software-engineering blog/newsletter (title "Alex Hyett", live HTTP 200,
+# 100% tech content: software/programming/developer/newsletter, zero adult content). Aged domain
+# (registered 2014, Namecheap + Cloudflare), reported by the domain owner. Miscategorised as adult
+# by the oisd NSFW feed (||alexhyett.com^) and so present only in nsfw.txt / nsfw_abp.txt — not in
+# any other list. Single-source NSFW false positive. Bare entry covers subdomains. (#71, PR #72)
+alexhyett.com
 
 # ============================================================================
 # REGEX PATTERNS
