@@ -1,5 +1,5 @@
 # Zach's Lists - Default Whitelist
-# Last Updated: 18/08/2026 - Allowlisted alexhyett.com (owner's software-engineering blog; oisd NSFW false positive)
+# Last Updated: 25/08/2026 - Allowlisted virustotal.com (Google VirusTotal; durable safeguard vs transient oisd NSFW miscategorisation)
 
 # ============================================================================
 # GOOGLE SERVICES
@@ -964,6 +964,13 @@ thefrenchghosty.me
 # by the oisd NSFW feed (||alexhyett.com^) and so present only in nsfw.txt / nsfw_abp.txt — not in
 # any other list. Single-source NSFW false positive. Bare entry covers subdomains. (#71, PR #72)
 alexhyett.com
+
+# VirusTotal (Google) — the well-known malware/URL scanning service; unambiguously legitimate.
+# Reporter confirmed via `pihole -q` that it was hit by nsfw.txt — a transient oisd NSFW
+# miscategorisation (||virustotal.com^), since delisted upstream (not in the current feed or our
+# lists). Whitelisted durably so a future oisd re-add can never block it again. Second confirmed
+# oisd NSFW miscategorisation after alexhyett.com (#71). Bare entry covers subdomains. (#62, PR #74)
+virustotal.com
 
 # ============================================================================
 # REGEX PATTERNS
