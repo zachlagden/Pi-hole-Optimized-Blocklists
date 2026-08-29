@@ -100,13 +100,15 @@ Thanks to everyone who supports this project.
 
 ## Star History
 
-<a href="https://www.star-history.com/?repos=zachlagden%2FPi-hole-Optimized-Blocklists&type=date&legend=top-left">
+<a href="https://github.com/zachlagden/Pi-hole-Optimized-Blocklists/stargazers">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=zachlagden/Pi-hole-Optimized-Blocklists&type=date&theme=dark&legend=top-left&sealed_token=9Jx5LBkT4JfsbRkS1zAKlFHNeQ3iRm9sS6CrpYijixM6LUn-KDK1ImRifPQLvWqJT7QYPbB9hHHwcO8fT5G3xLbi_Z7v7hc7aKUgEBg433TXmeOEcC2OjZWc0-yZ66e3vOxVHuqnbRD-27PyiP5vcW4pGCTZocg0a2TP3CJPXJ_xOkGpfY55tLDvpxMz" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=zachlagden/Pi-hole-Optimized-Blocklists&type=date&legend=top-left&sealed_token=9Jx5LBkT4JfsbRkS1zAKlFHNeQ3iRm9sS6CrpYijixM6LUn-KDK1ImRifPQLvWqJT7QYPbB9hHHwcO8fT5G3xLbi_Z7v7hc7aKUgEBg433TXmeOEcC2OjZWc0-yZ66e3vOxVHuqnbRD-27PyiP5vcW4pGCTZocg0a2TP3CJPXJ_xOkGpfY55tLDvpxMz" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=zachlagden/Pi-hole-Optimized-Blocklists&type=date&legend=top-left&sealed_token=9Jx5LBkT4JfsbRkS1zAKlFHNeQ3iRm9sS6CrpYijixM6LUn-KDK1ImRifPQLvWqJT7QYPbB9hHHwcO8fT5G3xLbi_Z7v7hc7aKUgEBg433TXmeOEcC2OjZWc0-yZ66e3vOxVHuqnbRD-27PyiP5vcW4pGCTZocg0a2TP3CJPXJ_xOkGpfY55tLDvpxMz" />
+   <source media="(prefers-color-scheme: dark)" srcset="assets/star-history-dark.png" />
+   <source media="(prefers-color-scheme: light)" srcset="assets/star-history-light.png" />
+   <img alt="Star History Chart for zachlagden/Pi-hole-Optimized-Blocklists" src="assets/star-history-light.png" />
  </picture>
 </a>
+
+<sub>Chart self-hosted from GitHub stargazer data (regenerate: <code>uv run --with matplotlib scripts/gen-star-history.py assets</code>). star-history.com embeds broke after GitHub <a href="https://www.star-history.com/blog/github-stargazer-api-restriction">restricted the stargazers API</a> in mid-2026.</sub>
 
 ## License
 
