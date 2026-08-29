@@ -29,3 +29,10 @@ novugs.com
 ||halaalstyle.com^
 ||awadio.pl^
 ||lamanucure.de^
+# infozaem.com — Ukrainian loan-aggregator/classifieds site flagged malicious by 8/92 engines on
+# VirusTotal (verified live), incl. ESET (Malware), VIPRE (Malware), Webroot (Malicious) and
+# alphaMountain + SafeToOpen (Phishing) — likely serving injected/malvertising or redirect content
+# (VT tags: iframes, external-resources, trackers). Reporter-supplied VT evidence, independently
+# confirmed. Its same-operator sibling uacred.com was clean (0/91 VT) and is deliberately NOT blocked.
+# Apex + all subdomains (ABP). (#75, PR #77)
+||infozaem.com^
