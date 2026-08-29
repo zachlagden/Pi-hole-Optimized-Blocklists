@@ -102,9 +102,9 @@ Thanks to everyone who supports this project.
 
 <a href="https://github.com/zachlagden/Pi-hole-Optimized-Blocklists/stargazers">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://repo-star-history.zachlagden.uk/svg?repos=zachlagden/pi-hole-optimized-blocklists&type=Date&theme=dark&legend=top-left&format=png" />
-   <source media="(prefers-color-scheme: light)" srcset="https://repo-star-history.zachlagden.uk/svg?repos=zachlagden/pi-hole-optimized-blocklists&type=Date&legend=top-left&format=png" />
-   <img alt="Star History Chart for zachlagden/Pi-hole-Optimized-Blocklists" src="https://repo-star-history.zachlagden.uk/svg?repos=zachlagden/pi-hole-optimized-blocklists&type=Date&legend=top-left&format=png" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://repo-star-history.zachlagden.uk/svg?repos=zachlagden/pi-hole-optimized-blocklists&type=Date&theme=dark&legend=top-left&format=png&cb=2" />
+   <source media="(prefers-color-scheme: light)" srcset="https://repo-star-history.zachlagden.uk/svg?repos=zachlagden/pi-hole-optimized-blocklists&type=Date&legend=top-left&format=png&cb=2" />
+   <img alt="Star History Chart for zachlagden/Pi-hole-Optimized-Blocklists" src="https://repo-star-history.zachlagden.uk/svg?repos=zachlagden/pi-hole-optimized-blocklists&type=Date&legend=top-left&format=png&cb=2" />
  </picture>
 </a>
 
