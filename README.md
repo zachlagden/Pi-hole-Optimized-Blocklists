@@ -102,13 +102,13 @@ Thanks to everyone who supports this project.
 
 <a href="https://github.com/zachlagden/Pi-hole-Optimized-Blocklists/stargazers">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="assets/star-history-dark.png" />
-   <source media="(prefers-color-scheme: light)" srcset="assets/star-history-light.png" />
-   <img alt="Star History Chart for zachlagden/Pi-hole-Optimized-Blocklists" src="assets/star-history-light.png" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://repo-star-history.zachlagden.uk/svg?repos=zachlagden/pi-hole-optimized-blocklists&type=Date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://repo-star-history.zachlagden.uk/svg?repos=zachlagden/pi-hole-optimized-blocklists&type=Date&legend=top-left" />
+   <img alt="Star History Chart for zachlagden/Pi-hole-Optimized-Blocklists" src="https://repo-star-history.zachlagden.uk/svg?repos=zachlagden/pi-hole-optimized-blocklists&type=Date&legend=top-left" />
  </picture>
 </a>
 
-<sub>Chart self-hosted from GitHub stargazer data (regenerate: <code>uv run --with matplotlib scripts/gen-star-history.py assets</code>). star-history.com embeds broke after GitHub <a href="https://www.star-history.com/blog/github-stargazer-api-restriction">restricted the stargazers API</a> in mid-2026.</sub>
+<sub>Live chart, self-hosted (star-history.com's open-source backend) after GitHub <a href="https://www.star-history.com/blog/github-stargazer-api-restriction">restricted the stargazers API</a> in mid-2026.</sub>
 
 ## License
 
