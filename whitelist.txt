@@ -1,5 +1,5 @@
 # Zach's Lists - Default Whitelist
-# Last Updated: 25/08/2026 - Allowlisted virustotal.com (Google VirusTotal; durable safeguard vs transient oisd NSFW miscategorisation)
+# Last Updated: 07/09/2026 - Allowlisted click-tt.de (German TT federation; 1Hosts FP) and myaddr.io/.tools/.dev (dyndns/ACME; hagezi dyndns FP)
 
 # ============================================================================
 # GOOGLE SERVICES
@@ -971,6 +971,22 @@ alexhyett.com
 # lists). Whitelisted durably so a future oisd re-add can never block it again. Second confirmed
 # oisd NSFW miscategorisation after alexhyett.com (#71). Bare entry covers subdomains. (#62, PR #74)
 virustotal.com
+
+# click-TT (click-tt.de) — official online administration and results platform of the German Table
+# Tennis Federation (DTTB); regional associations run on subdomains (e.g. pttv.click-tt.de). Live
+# site (HTTP 200). The apex was flagged by 1Hosts Lite; whitelisted domain-wide so the apex and all
+# regional subdomains resolve. (banner.click-tt.de is an ad/banner host flagged by hagezi/oisd; it's
+# the federation's own domain so it's covered too.) Bare entry covers subdomains. (#83, PR #85)
+click-tt.de
+
+# addr.tools (myaddr.io / myaddr.tools / myaddr.dev) — legitimate open-source self-hosting service
+# providing dynamic DNS and Let's Encrypt ACME (github.com/brianshea2/addr.tools). Flagged only by
+# hagezi's dyndns list, which blocks dynamic-DNS providers as a class (the category is abused by
+# malware C2) — a false positive for legit users doing dyndns/ACME, as the reporter is. Single-source
+# class-block FP. (#84, PR #85)
+myaddr.io
+myaddr.tools
+myaddr.dev
 
 # ============================================================================
 # REGEX PATTERNS
