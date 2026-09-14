@@ -36,3 +36,12 @@ novugs.com
 # confirmed. Its same-operator sibling uacred.com was clean (0/91 VT) and is deliberately NOT blocked.
 # Apex + all subdomains (ABP). (#75, PR #77)
 ||infozaem.com^
+# Fake ChatGPT (OpenAI) phishing — reported by maintainer. Both are compromised legit domains
+# repurposed for the scam (block while malicious; review if remediated):
+#   kfhomeloans.com — hosts the fake ChatGPT login page (credential harvesting); compromised US
+#     mortgage site on Bluehost shared hosting (aged 2018).
+#   ozkocinsaat.com.tr — sender domain of the phishing email (no-reply@ozkocinsaat.com.tr, "your
+#     ChatGPT account"); compromised Turkish construction-company domain.
+# Apex + all subdomains (ABP). (maintainer report, PR #87)
+||kfhomeloans.com^
+||ozkocinsaat.com.tr^
