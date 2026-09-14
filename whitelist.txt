@@ -1,5 +1,5 @@
 # Zach's Lists - Default Whitelist
-# Last Updated: 07/09/2026 - Allowlisted click-tt.de (German TT federation; 1Hosts FP) and myaddr.io/.tools/.dev (dyndns/ACME; hagezi dyndns FP)
+# Last Updated: 14/09/2026 - Allowlisted Archidekt card CDN (card-images.archidekt.com + archidekt-cloudflare.com; CNAME-cloaking false positive)
 
 # ============================================================================
 # GOOGLE SERVICES
@@ -987,6 +987,15 @@ click-tt.de
 myaddr.io
 myaddr.tools
 myaddr.dev
+
+# Archidekt card-image CDN — Archidekt (archidekt.com) is the MTG deck builder; its card art loads
+# from card-images.archidekt.com, which CNAMEs to card-images.archidekt-cloudflare.com (Archidekt's
+# own Cloudflare CDN domain, registered 2026-06-29). The young "-cloudflare.com" domain got flagged
+# and CNAME-cloaking detection then blocked the card-images.archidekt.com alias, breaking card art.
+# Whitelist the CDN domain (covers its subdomains) + the card-images host; ads.archidekt.com stays
+# blocked. (#86, PR #88)
+card-images.archidekt.com
+archidekt-cloudflare.com
 
 # ============================================================================
 # REGEX PATTERNS
