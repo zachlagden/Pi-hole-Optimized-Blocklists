@@ -76,3 +76,10 @@ def test_file_note_uses_message_then_site_and_evidence():
     note = file_note(Command("block", message="Confirmed kit host."), ["bad.example"], state, 9, None)
     assert note == "bad.example: Confirmed kit host. VT 8/89 for bad.example incl. ESET. (#9)"
     assert file_note(Command("block"), ["other.example"], state, 9, 10) == "other.example: found while triaging this issue. (#9, PR #10)"
+
+
+def test_owner_commands_are_not_thread_context():
+    from triage.github_api import is_command
+    assert is_command({"author_association": "OWNER", "body": "/block now"})
+    assert not is_command({"author_association": "OWNER", "body": "Looks like a kit host to me"})
+    assert not is_command({"author_association": "NONE", "body": "/block everything"})

@@ -35,6 +35,10 @@ def _role(comment: dict, issue_author: str) -> str:
     return "someone else"
 
 
+def is_command(comment: dict) -> bool:
+    return comment.get("author_association") == "OWNER" and (comment.get("body") or "").lstrip().startswith("/")
+
+
 def is_buried(comments: list[dict], report: dict) -> bool:
     later = comments[comments.index(report) + 1 :]
     return any(c["user"].get("type") != "Bot" and c.get("author_association") != "OWNER" for c in later)
@@ -90,7 +94,7 @@ class GitHub:
                 body=c.get("body") or "",
             )
             for c in self.comments(issue["number"])
-            if c["user"].get("type") != "Bot" and MARKER not in (c.get("body") or "")
+            if c["user"].get("type") != "Bot" and MARKER not in (c.get("body") or "") and not is_command(c)
         ]
 
     def upsert_report(self, number: int, body: str) -> str:
