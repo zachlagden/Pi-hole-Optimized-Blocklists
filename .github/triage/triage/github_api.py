@@ -66,6 +66,10 @@ class GitHub:
         response.raise_for_status()
         return response.json()
 
+    def open_issues(self, label: str) -> list[dict]:
+        issues = self._get(f"/repos/{self.repository}/issues", state="open", labels=label, per_page=100)
+        return [issue for issue in issues if "pull_request" not in issue]
+
     def issue(self, number: int) -> dict:
         return self._get(f"/repos/{self.repository}/issues/{number}")
 

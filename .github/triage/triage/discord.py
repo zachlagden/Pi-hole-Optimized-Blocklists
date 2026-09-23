@@ -79,3 +79,7 @@ def plain_embed(number: int, title: str, url: str, kind: str, note: str) -> dict
         "color": COLOURS.get(kind, COLOURS["other"]),
         "description": _trim(note, 2000),
     }
+
+
+def report_embed(title: str, description: str, url: str, urgent: bool) -> dict:
+    return {"title": _trim(title, 250), "url": url, "color": 0xD9534F if urgent else 0x5CB85C, "description": _trim(description, 4000)}

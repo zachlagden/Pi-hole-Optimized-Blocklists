@@ -1,0 +1,67 @@
+name: Triage watch
+
+on:
+  schedule:
+    - cron: '30 6 * * *'
+    - cron: '0 7 1 * *'
+  workflow_dispatch:
+    inputs:
+      task:
+        description: Which check to run
+        required: true
+        type: choice
+        options: [held, remediated, scorecard]
+
+permissions:
+  contents: read
+  issues: read
+  actions: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: .github/triage
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: .github/triage/uv.lock
+
+      - name: Run checks
+        env:
+          SCHEDULE: ${{ github.event.schedule }}
+          TASK: ${{ inputs.task }}
+          REPO_ROOT: ${{ github.workspace }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VIRUSTOTAL_API_KEY: ${{ secrets.VIRUSTOTAL_API_KEY }}
+          DISCORD_TRIAGE_WEBHOOK: ${{ secrets.DISCORD_TRIAGE_WEBHOOK }}
+          DISCORD_PING_USER_ID: ${{ secrets.DISCORD_PING_USER_ID }}
+        run: |
+          uv sync --frozen --no-dev
+          if [ -n "$TASK" ]; then
+            tasks="$TASK"
+          elif [ "$SCHEDULE" = "0 7 1 * *" ]; then
+            tasks="remediated scorecard"
+          else
+            tasks="held"
+          fi
+          for task in $tasks; do
+            uv run python -m triage watch "$task"
+          done
+
+      - name: Ping on failure
+        if: failure()
+        working-directory: ${{ github.workspace }}
+        env:
+          DISCORD_TRIAGE_WEBHOOK: ${{ secrets.DISCORD_TRIAGE_WEBHOOK }}
+          DISCORD_PING_USER_ID: ${{ secrets.DISCORD_PING_USER_ID }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          jq -n --arg id "$DISCORD_PING_USER_ID" --arg url "$RUN_URL" \
+            '{content: "<@\($id)> The triage watch workflow failed: \($url)", allowed_mentions: {users: [$id]}}' \
+            | curl -fsS -H 'Content-Type: application/json' -d @- "$DISCORD_TRIAGE_WEBHOOK"

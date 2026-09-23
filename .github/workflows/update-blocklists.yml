@@ -57,6 +57,39 @@ jobs:
             head -50 pihole_blocklists_prod/whitelist_report.txt
           fi
 
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: .github/triage/uv.lock
+
+      - name: Check feeds and new blocks
+        id: buildcheck
+        continue-on-error: true
+        working-directory: .github/triage
+        env:
+          REPO_ROOT: ${{ github.workspace }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          DISCORD_TRIAGE_WEBHOOK: ${{ secrets.DISCORD_TRIAGE_WEBHOOK }}
+          DISCORD_PING_USER_ID: ${{ secrets.DISCORD_PING_USER_ID }}
+        run: |
+          uv sync --frozen --no-dev
+          uv run python -m triage buildcheck \
+            --old "$REPO_ROOT/lists" \
+            --new "$REPO_ROOT/pihole_blocklists_prod" \
+            --base "$REPO_ROOT/pihole_blocklists" \
+            --stats "$REPO_ROOT/.github/triage/feed-stats.json"
+
+      - name: Ping if the build check itself failed
+        if: steps.buildcheck.outcome == 'failure'
+        env:
+          DISCORD_TRIAGE_WEBHOOK: ${{ secrets.DISCORD_TRIAGE_WEBHOOK }}
+          DISCORD_PING_USER_ID: ${{ secrets.DISCORD_PING_USER_ID }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          jq -n --arg id "$DISCORD_PING_USER_ID" --arg url "$RUN_URL" \
+            '{content: "<@\($id)> The weekly build check failed to run (the build itself carried on): \($url)", allowed_mentions: {users: [$id]}}' \
+            | curl -fsS -H 'Content-Type: application/json' -d @- "$DISCORD_TRIAGE_WEBHOOK"
+
       - name: Extract statistics
         id: stats
         run: |
@@ -199,9 +232,10 @@ jobs:
           git remote set-url origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/zachlagden/Pi-hole-Optimized-Blocklists.git
 
       - name: Commit and push
-        if: steps.check_changes.outputs.changes_detected == 'true'
+        if: steps.check_changes.outputs.changes_detected == 'true' && steps.buildcheck.outputs.run != 'true'
         run: |
           git add lists/*.txt README.md
+          git add .github/triage/feed-stats.json 2>/dev/null || true
 
           if git diff --staged --quiet; then
             echo "ℹ️ No changes to commit"
