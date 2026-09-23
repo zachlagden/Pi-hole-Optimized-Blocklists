@@ -85,6 +85,6 @@ novugs.com
 #   obsidianly.dns64.de  redirector the bucket page sends victims to (host only; dns64.de not blocked)
 #   bluelightlenzo.com   affiliate offer tracker that cloaks non-target visitors to Yahoo. Registered
 #                        2025-05-17, VT 11/89 incl. BitDefender, Forcepoint, Fortinet, G-Data
-# (maintainer report, PR #NN)
+# (maintainer report, PR #119)
 ||obsidianly.dns64.de^
 ||bluelightlenzo.com^
