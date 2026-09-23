@@ -87,7 +87,7 @@ def live_lines(evidence: Evidence) -> list[str]:
     if evidence.fetches:
         lines.append(f"Cloaking check: {evidence.cloaking or 'all visitor types got the same site'}")
     for fetch in evidence.quoted_fetches:
-        start = safe(fetch.chain[0] if fetch.chain else "", 160)
+        start = safe(fetch.start or (fetch.chain[0] if fetch.chain else ""), 160)
         if fetch.status is None:
             lines.append(f"Reported URL `{start}`: failed ({safe(fetch.error or 'unknown')})")
             continue
