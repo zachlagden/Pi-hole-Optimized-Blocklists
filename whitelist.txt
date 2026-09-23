@@ -997,7 +997,7 @@ myaddr.dev
 card-images.archidekt.com
 archidekt-cloudflare.com
 
-# allow-test.example: found while triaging this issue. (#124)
+# allow-test.example: found while triaging this issue. (#124, PR #127)
 allow-test.example
 
 # ============================================================================
