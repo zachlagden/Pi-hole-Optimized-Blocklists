@@ -60,6 +60,9 @@ def plan_needs_info(current: set[str], recommendation: str) -> LabelPlan:
     if recommendation == "needs_info" and NEEDS_INFO not in current:
         plan.add.add(NEEDS_INFO)
         plan.notes.append("needs info: the AI review found the evidence too thin to decide")
+    elif recommendation != "needs_info" and NEEDS_INFO in current:
+        plan.remove.add(NEEDS_INFO)
+        plan.notes.append("needs info removed: the AI review now has enough to suggest a decision")
     return plan
 
 

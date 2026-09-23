@@ -19,6 +19,22 @@ class Reporter:
     error: str | None = None
 
 
+@dataclass(frozen=True)
+class ThreadComment:
+    id: int
+    author: str
+    role: str
+    body: str
+
+
+def _role(comment: dict, issue_author: str) -> str:
+    if comment.get("author_association") == "OWNER":
+        return "maintainer"
+    if comment["user"]["login"] == issue_author:
+        return "reporter"
+    return "someone else"
+
+
 class GitHub:
     def __init__(self, token: str, repository: str) -> None:
         self.repository = repository
@@ -47,9 +63,33 @@ class GitHub:
     def comment(self, number: int, comment_id: int) -> dict:
         return self._get(f"/repos/{self.repository}/issues/comments/{comment_id}")
 
+    def comments(self, number: int) -> list[dict]:
+        found: list[dict] = []
+        for page in range(1, 11):
+            batch = self._get(f"/repos/{self.repository}/issues/{number}/comments", per_page=100, page=page)
+            found += batch
+            if len(batch) < 100:
+                break
+        return found
+
+    def report(self, number: int) -> dict | None:
+        return next((c for c in self.comments(number) if MARKER in (c.get("body") or "")), None)
+
+    def thread(self, issue: dict) -> list[ThreadComment]:
+        author = (issue.get("user") or {}).get("login", "")
+        return [
+            ThreadComment(
+                id=c["id"],
+                author=c["user"]["login"],
+                role=_role(c, author),
+                body=c.get("body") or "",
+            )
+            for c in self.comments(issue["number"])
+            if c["user"].get("type") != "Bot" and MARKER not in (c.get("body") or "")
+        ]
+
     def upsert_report(self, number: int, body: str) -> str:
-        comments = self._get(f"/repos/{self.repository}/issues/{number}/comments", per_page=100)
-        existing = next((c for c in comments if MARKER in (c.get("body") or "")), None)
+        existing = self.report(number)
         if existing:
             response = self.client.patch(f"/repos/{self.repository}/issues/comments/{existing['id']}", json={"body": body})
         else:

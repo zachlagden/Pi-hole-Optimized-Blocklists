@@ -30,6 +30,7 @@ class IssueRequest:
     lists: list[str] = field(default_factory=list)
     evidence: str = ""
     details: str = ""
+    thread: list = field(default_factory=list)
 
 
 def parse_sections(body: str) -> dict[str, str]:
