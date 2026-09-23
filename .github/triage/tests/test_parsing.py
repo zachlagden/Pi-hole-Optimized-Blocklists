@@ -61,3 +61,11 @@ def test_popular_domain_is_never_its_own_lookalike():
     ranks = {"google.com": 1, "googll.store": 1657}
     assert find_lookalikes("google.com", ranks, 10_000) == []
     assert [item.brand for item in find_lookalikes("gooogle.com", ranks, 10_000)] == ["google.com"]
+
+
+def test_shared_platform_hosts_are_their_own_site():
+    from triage.domains import registrable, shared_platform
+    assert registrable("pub-abc.r2.dev") == "pub-abc.r2.dev"
+    assert shared_platform("pub-abc.r2.dev") == "r2.dev"
+    assert shared_platform("a.b.example.co.uk") is None
+    assert self_and_parents("x.fatlantmxppress.us.cc") == ["x.fatlantmxppress.us.cc", "fatlantmxppress.us.cc"]

@@ -39,7 +39,7 @@ def clean_domain(raw: str) -> str | None:
 @lru_cache(maxsize=1)
 def _extractor() -> tldextract.TLDExtract:
     cache_dir = Path.home() / ".cache" / "issue-triage" / "tldextract"
-    return tldextract.TLDExtract(cache_dir=str(cache_dir))
+    return tldextract.TLDExtract(cache_dir=str(cache_dir), include_psl_private_domains=True)
 
 
 def registrable(domain: str) -> str:
@@ -60,3 +60,8 @@ def self_and_parents(domain: str) -> list[str]:
     if base in chain:
         return chain[: chain.index(base) + 1]
     return chain[:-1] or [domain]
+
+
+def shared_platform(domain: str) -> str | None:
+    parts = _extractor()(domain)
+    return parts.suffix if parts.is_private else None
