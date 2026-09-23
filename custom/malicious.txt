@@ -52,3 +52,30 @@ novugs.com
 # (rdr.salesdoubler.com.ua / rdr.fmcgsd.net / rdr.pdlsd.kz) that AV vendors classify as scam/phishing.
 # Apex + all subdomains (ABP). (#76, PR #90)
 ||uacred.com^
+# Fake American Express phishing cluster (maintainer report, emails 19-21 Sep 2026). One operator
+# sends "card locked" / "card suspended" lures from compromised hosts with forged From addresses,
+# linking via t.co to a cloaked gate, then an operator-driven account-takeover kit on single-use
+# Cloudflare R2 buckets that posts login, card, SSN digits, OTPs and email passwords to a drop on a
+# compromised WordPress host. Shared platforms (t.co, r2.dev, us.cc) and the hacked parent sites are
+# NOT blocked; only the attacker-controlled hosts are.
+#   fatlantmxppress.us.cc  gate: bot check, proof-of-work, one-time paths, 520 decoy for scanners (#103)
+#   amexp.com              Amex typosquat used as the sender domain, parked, VT phishing (#105)
+#   pub-3d47….r2.dev       campaign A kit host, /new.html (#106)
+#   pub-d915….r2.dev       campaign B kit host, Cloudflare now shows Suspected Phishing (#108)
+#   pub-8489….r2.dev       sibling kit host from the same operation, live at report time (#110)
+#   staging.aggiudicasa.it campaign A credential drop on a compromised subdomain (#112)
+#   shuvo.expertteam.top   sibling kit's credential drop (maintainer report)
+# Same gate kit serving other lures (a Gmail phish and others), found during the investigation:
+#   wahala.pw, zexil.sbs, remindtoviewerofco.pw, safelink.bolashak-dosllc.com
+# Apex + all subdomains (ABP). (#103, #105, #106, #108, #110, #112, PR #114)
+||fatlantmxppress.us.cc^
+||amexp.com^
+||pub-3d47a1b6e45745f2add26014458cb366.r2.dev^
+||pub-d915edf28c7f4a00bd644b2a8a3c363a.r2.dev^
+||pub-8489885ca26a4dc4a9cd2d6f27c442d1.r2.dev^
+||staging.aggiudicasa.it^
+||shuvo.expertteam.top^
+||wahala.pw^
+||zexil.sbs^
+||remindtoviewerofco.pw^
+||safelink.bolashak-dosllc.com^
