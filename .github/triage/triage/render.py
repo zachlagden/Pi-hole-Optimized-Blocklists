@@ -86,6 +86,13 @@ def live_lines(evidence: Evidence) -> list[str]:
         lines.append(f"{fetch.profile}: HTTP {fetch.status}, title \"{safe(fetch.title, 100)}\", {fetch.size:,} bytes, via {hops}")
     if evidence.fetches:
         lines.append(f"Cloaking check: {evidence.cloaking or 'all visitor types got the same site'}")
+    for fetch in evidence.quoted_fetches:
+        start = safe(fetch.chain[0] if fetch.chain else "", 160)
+        if fetch.status is None:
+            lines.append(f"Reported URL `{start}`: failed ({safe(fetch.error or 'unknown')})")
+            continue
+        hops = " → ".join(f"`{safe(url, 120)}`" for url in fetch.chain[1:]) or "no redirect"
+        lines.append(f"Reported URL `{start}`: HTTP {fetch.status}, title \"{safe(fetch.title, 100)}\", {fetch.size:,} bytes, then {hops}")
     return lines
 
 

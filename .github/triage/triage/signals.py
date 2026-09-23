@@ -97,14 +97,17 @@ def _platform_signals(evidence: Evidence) -> list[Signal]:
 
 
 def collect(evidence: Evidence, today: date) -> list[Signal]:
-    return (
+    others = (
         _platform_signals(evidence)
         + _source_signals(evidence)
         + _virustotal_signals(evidence)
-        + _age_signals(evidence, today)
         + _popularity_signals(evidence)
         + _site_signals(evidence)
     )
+    age = _age_signals(evidence, today)
+    if any(signal.lean == TOWARD_BLOCK for signal in others):
+        age = [signal for signal in age if signal.lean != TOWARD_ALLOW]
+    return others + age
 
 
 def evidence_bar(evidence: Evidence) -> tuple[bool, str]:

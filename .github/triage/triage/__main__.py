@@ -65,8 +65,12 @@ def gather_live(evidence: Evidence, take_screenshot: bool) -> None:
     evidence.addresses = live.resolve(evidence.domain)
     evidence.fetches = attempt(evidence, "live fetch", lambda: live.fetch_all(evidence.domain), [])
     evidence.cloaking = live.cloaking_summary(evidence.fetches)
+    request = evidence.request
+    urls = live.quoted_urls("\n".join([request.raw_domain, request.evidence, request.details, request.body]), evidence.domain)
+    evidence.quoted_fetches = [attempt(evidence, f"fetch {url}", lambda u=url: live.fetch_url(u, "desktop"), live.Fetch("desktop")) for url in urls]
+    live_quoted = next((f.chain[0] for f in evidence.quoted_fetches if f.status and f.status < 400), None)
     if take_screenshot and evidence.addresses:
-        evidence.capture = attempt(evidence, "screenshot", lambda: screenshot.capture(evidence.domain), None)
+        evidence.capture = attempt(evidence, "screenshot", lambda: screenshot.capture(evidence.domain, live_quoted), None)
         if evidence.capture and evidence.capture.error:
             evidence.failures.append(f"screenshot: {evidence.capture.error}")
 
@@ -112,7 +116,8 @@ def deliver(github: GitHub, discord: Discord | None, options, number: int, comme
     if plan.notes:
         embed.setdefault("fields", []).append({"name": "Labels set by the AI", "value": "\n".join(plan.notes)[:1000]})
     if discord:
-        discord.send("New issue needs your review.", embed, png)
+        text = "Triage ran again on an issue." if options.rerun else "New issue needs your review."
+        discord.send(text, embed, png)
 
 
 def classify_issue(issue: dict, api_key: str | None) -> tuple[ai_review.Classification | None, LabelPlan]:
@@ -201,6 +206,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     issue.add_argument("--no-ai", action="store_true")
     issue.add_argument("--no-discord", action="store_true")
     issue.add_argument("--no-screenshot", action="store_true")
+    issue.add_argument("--rerun", action="store_true", default=os.environ.get("GITHUB_EVENT_NAME", "issues") != "issues")
     reply = commands.add_parser("reply")
     reply.add_argument("number", type=int)
     reply.add_argument("comment_id", type=int)
