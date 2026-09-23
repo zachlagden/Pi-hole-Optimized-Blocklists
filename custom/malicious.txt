@@ -88,3 +88,12 @@ novugs.com
 # (maintainer report, PR #119)
 ||obsidianly.dns64.de^
 ||bluelightlenzo.com^
+# Two more hops in the same fake cloud storage renewal chain, seen when bluelightlenzo.com forwards a
+# targeted visitor (non-targets are cloaked to Yahoo):
+#   reviewfixand.com        second affiliate offer tracker, registered 2026-09-01, VT 6/89 incl.
+#                           ESET, BitDefender, G-Data
+#   securedenvironment.com  visitor filter (verify.securedenvironment.com) that decides who sees the
+#                           scam, VT 12/89 incl. ESET, BitDefender, Fortinet, G-Data
+# (maintainer report, PR #NN)
+||reviewfixand.com^
+||securedenvironment.com^
