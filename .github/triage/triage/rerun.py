@@ -3,7 +3,10 @@ from dataclasses import dataclass
 from triage import ai_review, live
 from triage.github_api import ThreadComment
 from triage.issue_form import IssueRequest
-from triage.state import TriageState, body_sha
+from triage.domains import clean_domain
+from triage.state import TriageState, added_words, body_diff, body_sha
+
+COSMETIC_WORD_LIMIT = 3
 
 
 @dataclass
@@ -34,6 +37,15 @@ def new_urls(request: IssueRequest, comments: list[ThreadComment], state: Triage
     return [url for url in live.quoted_urls(text, domain, limit=10) if url not in state.seen_urls]
 
 
+def is_cosmetic_edit(state: TriageState, new_body: str) -> bool:
+    if not state.body:
+        return False
+    words = added_words(state.body, new_body)
+    if any("://" in word or clean_domain(word) for word in words if "." in word):
+        return False
+    return len(words) <= COSMETIC_WORD_LIMIT
+
+
 def _ai_verdict(request: IssueRequest, state: TriageState, body_changed: bool, comments: list[ThreadComment], api_key: str) -> tuple[bool, str]:
     context = {
         "domain": state.domain,
@@ -44,7 +56,8 @@ def _ai_verdict(request: IssueRequest, state: TriageState, body_changed: bool, c
     }
     material = [{"from": c.author, "role": c.role, "text": c.body[:3000]} for c in comments]
     if body_changed:
-        material.insert(0, {"from": request.author, "role": "reporter", "text": "Edited issue body:\n" + request.body[:6000]})
+        change = body_diff(state.body, request.body) if state.body else "Edited issue body (no earlier copy to compare):\n" + request.body[:6000]
+        material.insert(0, {"from": request.author, "role": "reporter", "text": "Edit to the issue body, as a diff (- removed, + added):\n" + change})
     try:
         return ai_review.is_useful(context, material, api_key)
     except Exception as error:
@@ -58,6 +71,8 @@ def check(issue: dict, request: IssueRequest, thread: list[ThreadComment], state
         return Check(True, "new activity on an issue with no triage state yet", "no previous triage to compare against")
     body_changed = body_sha(request.body) != state.body_sha
     comments = unseen_comments(thread, state)
+    if body_changed and not comments and is_cosmetic_edit(state, request.body):
+        return Check(False, "", "the edit only changed a few words, with no new URL or domain")
     if not body_changed and not comments:
         return Check(False, "", "nothing new since the last triage")
     trigger = describe_trigger(body_changed, comments)

@@ -17,7 +17,7 @@ from triage.issue_form import IssueRequest, from_issue
 from triage.labels import NEEDS_INFO, LabelPlan, merge, plan_impact, plan_needs_info, plan_type
 from triage.policy import TYPOSQUAT_POOL
 from triage.repo_state import custom_matches, whitelist_matches
-from triage.state import TriageState, body_sha, parse_state
+from triage.state import MAX_STORED_BODY, TriageState, body_sha, parse_state
 from triage.sources import load_sources, scan_sources
 from triage.typosquat import find_lookalikes
 
@@ -110,6 +110,7 @@ def next_state(request: IssueRequest, previous: TriageState | None, review: ai_r
     return TriageState(
         domain=request.domain or "",
         body_sha=body_sha(request.body),
+        body=request.body[:MAX_STORED_BODY],
         recommendation=recommendation if review and not review.error else (previous.recommendation if previous else ""),
         confidence=confidence,
         questions=review.questions if review and not review.error else [],

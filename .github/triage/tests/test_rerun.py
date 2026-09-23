@@ -76,3 +76,29 @@ def test_ai_failure_reruns_to_be_safe(monkeypatch):
 def test_needs_info_is_removed_once_the_review_can_decide():
     assert plan_needs_info({"needs info"}, "block").remove == {"needs info"}
     assert plan_needs_info({"needs info"}, "needs_info").empty
+
+
+def test_typo_edit_is_cosmetic_and_skips_the_ai(monkeypatch):
+    def fail(*args):
+        raise AssertionError("AI should not be asked about a typo edit")
+    monkeypatch.setattr(rerun.ai_review, "is_useful", fail)
+    edited = BODY.replace("phishing", "phishing, sadly")
+    result = rerun.check(issue(edited), from_issue(issue(edited)), [], saved_state(body=BODY), "key")
+    assert not result.run and "few words" in result.reason
+
+
+def test_edit_adding_a_redirect_host_is_not_cosmetic():
+    state = saved_state(body=BODY)
+    edited = BODY + "\nIt redirects to obsidianly.dns64.de"
+    assert not rerun.is_cosmetic_edit(state, edited)
+
+
+def test_edit_diff_is_what_the_ai_sees(monkeypatch):
+    seen = {}
+    def capture(context, material, key):
+        seen["text"] = material[0]["text"]
+        return True, "new detail"
+    monkeypatch.setattr(rerun.ai_review, "is_useful", capture)
+    edited = BODY + "\nIt asked for my card number, expiry date, CVV and billing postcode on the second page."
+    rerun.check(issue(edited), from_issue(issue(edited)), [], saved_state(body=BODY), "key")
+    assert "+It asked for my card number" in seen["text"] and "### Category" not in seen["text"]

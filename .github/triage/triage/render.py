@@ -93,6 +93,9 @@ def live_lines(evidence: Evidence) -> list[str]:
             continue
         hops = " → ".join(f"`{safe(url, 120)}`" for url in fetch.chain[1:]) or "no redirect"
         lines.append(f"Reported URL `{start}`: HTTP {fetch.status}, title \"{safe(fetch.title, 100)}\", {fetch.size:,} bytes, then {hops}")
+        if fetch.script_redirects:
+            targets = ", ".join(f"`{safe(url, 120)}`" for url in fetch.script_redirects)
+            lines.append(f"Its script sends the browser on to {targets}")
     return lines
 
 
