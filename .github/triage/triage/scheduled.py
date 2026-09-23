@@ -3,7 +3,7 @@ import json
 import os
 from pathlib import Path
 
-from triage import buildcheck, reputation, watch
+from triage import buildcheck, fp_review, reputation, watch
 from triage.discord import Discord, report_embed
 from triage.github_api import GitHub
 from triage.repo_ops import RepoOps
@@ -15,6 +15,7 @@ def run_buildcheck(options: argparse.Namespace, discord: Discord | None) -> int:
     ranks = reputation.tranco_ranks(CACHE_DIR / "tranco")
     stats = Path(options.stats)
     report = buildcheck.check(Path(options.repo_root), Path(options.old), Path(options.new), Path(options.base), stats, ranks)
+    apply_review(report)
     text = buildcheck.summary(report)
     print(text)
     if not report.hold:
@@ -24,6 +25,22 @@ def run_buildcheck(options: argparse.Namespace, discord: Discord | None) -> int:
         title = "Weekly build HELD" if report.hold else "Weekly build check"
         discord.send(title + ".", report_embed(title, text, run_url(), report.needs_attention), ping=report.needs_attention)
     return 0
+
+
+def apply_review(report: buildcheck.BuildReport) -> None:
+    api_key = os.environ.get("MINIMAX_API_KEY")
+    if not api_key or not report.single_source:
+        return
+    try:
+        verdicts = fp_review.review(report.single_source, os.environ.get("VIRUSTOTAL_API_KEY", ""), api_key)
+    except Exception as error:
+        report.review_note = f"AI review failed ({type(error).__name__}), so these are unreviewed."
+        return
+    for block in report.single_source:
+        if found := verdicts.get(block.domain):
+            block.verdict, block.reason = found.verdict, found.reason
+    if len(report.single_source) > fp_review.MAX_REVIEWS:
+        report.review_note = f"Only the top {fp_review.MAX_REVIEWS} were reviewed."
 
 
 def run_watch(options: argparse.Namespace, discord: Discord | None) -> int:

@@ -50,3 +50,22 @@ def test_new_popular_blocks_and_hold(tmp_path):
     corroborated = buildcheck.NewBlock("ads.example", 5, ["all_domains.txt"], ["a", "b"])
     quiet = buildcheck.BuildReport(1000, 990, [], [corroborated], {})
     assert not quiet.needs_attention and "likely correct" in buildcheck.summary(quiet)
+
+
+def test_reviewed_hits_are_grouped_and_only_doubtful_ones_ping():
+    fp = buildcheck.NewBlock("uni.example", 50, ["all_domains.txt"], ["hagezi_pro"], "likely_fp", "University homepage")
+    fine = buildcheck.NewBlock("ads.example", 60, ["all_domains.txt"], ["hagezi_pro"], "likely_correct", "Ad redirect domain")
+    quiet = buildcheck.BuildReport(1000, 995, [], [fine], {})
+    assert not quiet.needs_attention
+    loud = buildcheck.BuildReport(1000, 995, [], [fine, fp], {})
+    text = buildcheck.summary(loud)
+    assert loud.needs_attention
+    assert text.index("Likely false positives") < text.index("uni.example") < text.index("likely correct") < text.index("ads.example")
+    unreviewed = buildcheck.BuildReport(1000, 995, [], [buildcheck.NewBlock("x.example", 70, ["nsfw.txt"], ["oisd_nsfw"])], {})
+    assert unreviewed.needs_attention and "Not reviewed" in buildcheck.summary(unreviewed)
+
+
+def test_visible_text_drops_scripts_and_tags():
+    from triage.live import visible_text
+    page = b"<html><script>var x=1</script><style>p{}</style><h1>Univ &amp; Co</h1><p>Welcome</p></html>"
+    assert visible_text(page) == "Univ & Co Welcome"

@@ -58,6 +58,9 @@ def test_append_block_formats_entries():
 
 def test_insert_allow_block_goes_at_the_end_of_the_reported_section_and_bumps_the_header():
     original = (REPO / "whitelist.txt").read_text()
+    before = original.splitlines()
+    regex_at = before.index("# REGEX PATTERNS")
+    last_entry = next(line for line in reversed(before[: regex_at - 1]) if line.strip() and not line.startswith("#"))
     block = entry_block(["legit.example"], "legit.example: shop. (#9, PR #10)")
     updated = insert_allow_block(original, block, "23/09/2026", "Allowlisted legit.example (#9)")
     lines = updated.splitlines()
@@ -65,7 +68,7 @@ def test_insert_allow_block_goes_at_the_end_of_the_reported_section_and_bumps_th
     at = lines.index("legit.example")
     assert lines[at - 1] == "# legit.example: shop. (#9, PR #10)"
     assert lines[at + 1] == "" and lines[at + 2].startswith("# ====") and lines[at + 3] == "# REGEX PATTERNS"
-    assert lines[at - 3] == "archidekt-cloudflare.com" and lines[at - 2] == ""
+    assert lines[at - 3] == last_entry and lines[at - 2] == ""
     assert len(lines) == len(original.splitlines()) + 3
 
 

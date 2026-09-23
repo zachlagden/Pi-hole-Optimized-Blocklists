@@ -23,6 +23,12 @@ class NewBlock:
     rank: int
     lists: list[str] = field(default_factory=list)
     sources: list[str] = field(default_factory=list)
+    verdict: str = ""
+    reason: str = ""
+
+    @property
+    def cleared(self) -> bool:
+        return self.verdict == "likely_correct"
 
 
 @dataclass
@@ -32,6 +38,7 @@ class BuildReport:
     feed_problems: list[FeedProblem]
     new_blocks: list[NewBlock]
     counts: dict[str, int]
+    review_note: str = ""
 
     @property
     def shrink(self) -> float:
@@ -51,7 +58,7 @@ class BuildReport:
 
     @property
     def needs_attention(self) -> bool:
-        return self.big_shrink or bool(self.feed_problems) or bool(self.single_source)
+        return self.big_shrink or bool(self.feed_problems) or any(not block.cleared for block in self.single_source)
 
 
 def list_total(path: Path) -> int:
@@ -155,16 +162,28 @@ def summary(report: BuildReport) -> str:
         lines.append("**Feed problems:**")
         lines += [f"- {problem.name}: {problem.problem}" for problem in report.feed_problems]
     single = report.single_source
+    groups = [
+        ("likely_fp", "**Likely false positives, please check:**"),
+        ("unclear", "**Unclear, worth a look:**"),
+        ("", "**Not reviewed:**"),
+        ("likely_correct", "Reviewed, likely correct:"),
+    ]
     if single:
-        lines.append(f"**Newly blocked popular sites from a single feed** (Tranco top {NEW_FP_RANK:,}), worth a look:")
-        for block in single[:25]:
-            lines.append(f"- {block.domain} (#{block.rank:,}) in {', '.join(block.lists)}, from {', '.join(block.sources) or 'unknown feed'}")
-        if len(single) > 25:
-            lines.append(f"- and {len(single) - 25} more")
+        lines.append(f"Newly blocked popular sites from a single feed (Tranco top {NEW_FP_RANK:,}):")
+    for verdict, heading in groups:
+        members = [block for block in single if block.verdict == verdict]
+        if not members:
+            continue
+        lines.append(heading)
+        for block in members[:25]:
+            reason = f": {block.reason}" if block.reason else ""
+            lines.append(f"- {block.domain} (#{block.rank:,}) in {', '.join(block.lists)}, from {', '.join(block.sources) or 'unknown feed'}{reason}")
+    if report.review_note:
+        lines.append(report.review_note)
     corroborated = [block for block in report.new_blocks if len(block.sources) > 1]
     if corroborated:
         names = ", ".join(block.domain for block in corroborated[:8])
         lines.append(f"Also newly blocked by several feeds (likely correct): {names}" + (" and more" if len(corroborated) > 8 else ""))
     if not report.needs_attention:
-        lines.append("No feed problems and no single-feed blocks of popular sites.")
+        lines.append("No feed problems, and nothing that looks like a new false positive.")
     return "\n".join(lines)
