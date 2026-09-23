@@ -52,7 +52,8 @@ def gather_reputation(evidence: Evidence, vt_key: str | None) -> None:
     if vt_key:
         evidence.virustotal = [attempt(evidence, f"VirusTotal {name}", lambda n=name: reputation.virustotal(n, vt_key), None) for name in names]
         evidence.virustotal = [vt for vt in evidence.virustotal if vt is not None]
-    evidence.registration = attempt(evidence, "RDAP", lambda: reputation.registration(evidence.apex), None)
+    if not evidence.platform:
+        evidence.registration = attempt(evidence, "RDAP", lambda: reputation.registration(evidence.apex), None)
     ranks = attempt(evidence, "Tranco", lambda: reputation.tranco_ranks(CACHE_DIR / "tranco"), {})
     evidence.tranco_rank = ranks.get(evidence.domain)
     evidence.apex_tranco_rank = ranks.get(evidence.apex)
