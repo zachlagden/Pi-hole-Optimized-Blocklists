@@ -102,3 +102,14 @@ def test_edit_diff_is_what_the_ai_sees(monkeypatch):
     edited = BODY + "\nIt asked for my card number, expiry date, CVV and billing postcode on the second page."
     rerun.check(issue(edited), from_issue(issue(edited)), [], saved_state(body=BODY), "key")
     assert "+It asked for my card number" in seen["text"] and "### Category" not in seen["text"]
+
+
+def test_report_is_reposted_only_when_someone_else_commented_after_it():
+    from triage.github_api import is_buried
+    def c(login, association="NONE", kind="User"):
+        return {"user": {"login": login, "type": kind}, "author_association": association}
+    report = {**c("github-actions[bot]", kind="Bot"), "body": "report"}
+    assert not is_buried([c("rep"), report], report)
+    assert not is_buried([c("rep"), report, c("zach", "OWNER")], report)
+    assert is_buried([c("rep"), report, c("zach", "OWNER"), c("rep")], report)
+    assert is_buried([report, c("stranger")], report)
