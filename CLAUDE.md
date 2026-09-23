@@ -73,7 +73,7 @@ Pi-hole-Optimized-Blocklists/
 `.github/workflows/issue-triage.yml` runs `.github/triage` (`uv run python -m triage issue <n>`) when an issue opens:
 
 - Posts one report comment (marker `<!-- issue-triage-report -->`, updated in place on re-runs) with deterministic evidence: custom/whitelist matches, which upstream feeds list the domain, VirusTotal, RDAP, Tranco rank, a live fetch with a cloaking check, and lookalike brands for block requests.
-- Asks MiniMax M3 for an advisory view (site description, suggestion, impact, draft reply). It never changes a list.
+- Asks MiniMax M3 for an advisory view (site description, suggestion, impact, suggested entry). It never changes a list.
 - The AI may set labels: fix the type label, set one `impact:` label, and add `needs info`. It never sets `declined` or `duplicate` and never closes issues.
 - Sends a Discord ping for every new issue and for every reply from someone other than the owner. Reporter signals (account age, the same domain filed in other repos) go only to Discord, never to the public comment.
 - Tunable rules (reputable VirusTotal engines, false-positive-prone feeds, threat-intel feeds, thresholds) live in `.github/triage/triage/policy.py`.

@@ -55,3 +55,9 @@ def test_typosquat_detection():
     assert [item.brand for item in find_lookalikes("netflxi.com", ranks, 10_000)] == ["netflix.com"]
     assert find_lookalikes("netflix.com", ranks, 10_000) == []
     assert [item.brand for item in find_lookalikes("secure-github.help", ranks, 10_000)] == ["github.com"]
+
+
+def test_popular_domain_is_never_its_own_lookalike():
+    ranks = {"google.com": 1, "googll.store": 1657}
+    assert find_lookalikes("google.com", ranks, 10_000) == []
+    assert [item.brand for item in find_lookalikes("gooogle.com", ranks, 10_000)] == ["google.com"]
