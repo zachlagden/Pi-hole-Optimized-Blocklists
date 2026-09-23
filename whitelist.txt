@@ -1,5 +1,5 @@
 # Zach's Lists - Default Whitelist
-# Last Updated: 14/09/2026 - Allowlisted Archidekt card CDN (card-images.archidekt.com + archidekt-cloudflare.com; CNAME-cloaking false positive)
+# Last Updated: 23/09/2026 - Allowlisted ulm.ac.id (exact), hudong.com, rusfootball.info (build-check false positives)
 
 # ============================================================================
 # GOOGLE SERVICES
@@ -996,6 +996,21 @@ myaddr.dev
 # blocked. (#86, PR #88)
 card-images.archidekt.com
 archidekt-cloudflare.com
+
+# Found by the weekly build check (Tranco top 100k, blocked by a single feed), 2026-09-23.
+# Lambung Mangkurat University, a public university in South Kalimantan, Indonesia. HaGeZi Pro
+# blocks the whole domain, most likely collateral from a past compromise of one department host
+# (ppds.anestesi.ulm.ac.id, still in HaGeZi TIF). Exact apex only, so that host stays blocked.
+# (maintainer review, PR #NN)
+/^ulm\.ac\.id$/
+
+# 快懂百科 (Kuaidong Baike), ByteDance's Chinese encyclopedia (formerly Hudong Baike), registered
+# 2001. Miscategorised as adult by oisd NSFW; no adult content. (maintainer review, PR #NN)
+hudong.com
+
+# Russian football news (fixtures, results, Russian Premier League), registered 2005. Listed by
+# oisd NSFW, probably for bookmaker ads; not adult content. (maintainer review, PR #NN)
+rusfootball.info
 
 # ============================================================================
 # REGEX PATTERNS
