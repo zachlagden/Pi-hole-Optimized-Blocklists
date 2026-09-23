@@ -67,7 +67,7 @@ def gather_live(evidence: Evidence, take_screenshot: bool) -> None:
     evidence.cloaking = live.cloaking_summary(evidence.fetches)
     request = evidence.request
     urls = live.quoted_urls("\n".join([request.raw_domain, request.evidence, request.details, request.body]), evidence.domain)
-    evidence.quoted_fetches = [attempt(evidence, f"fetch {url}", lambda u=url: live.fetch_url(u, "desktop"), live.Fetch("desktop")) for url in urls]
+    evidence.quoted_fetches = [attempt(evidence, f"fetch {url}", lambda u=url: live.fetch_url(u, "desktop"), live.Fetch("desktop", url)) for url in urls]
     live_quoted = next((f.chain[0] for f in evidence.quoted_fetches if f.status and f.status < 400), None)
     if take_screenshot and evidence.addresses:
         evidence.capture = attempt(evidence, "screenshot", lambda: screenshot.capture(evidence.domain, live_quoted), None)

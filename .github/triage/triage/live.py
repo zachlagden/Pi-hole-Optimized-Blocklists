@@ -30,6 +30,7 @@ TITLE_RE = re.compile(r"<title[^>]*>(.*?)</title>", re.IGNORECASE | re.DOTALL)
 @dataclass
 class Fetch:
     profile: str
+    start: str = ""
     chain: list[str] = field(default_factory=list)
     status: int | None = None
     title: str = ""
@@ -80,7 +81,7 @@ def fetch(domain: str, profile: str) -> Fetch:
 
 
 def fetch_url(start: str, profile: str, fallback_http: bool = False) -> Fetch:
-    result = Fetch(profile)
+    result = Fetch(profile, start)
     url = start
     with httpx.Client(headers=PROFILES[profile], timeout=20, follow_redirects=False, verify=False) as client:
         for _ in range(MAX_REDIRECTS + 1):
