@@ -118,8 +118,6 @@ def _review_block(review: Review | None) -> list[str]:
         lines += ["", f"**Suggested entry:** `{review.suggested_entry.replace('`', '')}`"]
     if review.questions:
         lines += ["", "**Questions for the reporter:**"] + [f"- {q}" for q in review.questions]
-    if review.draft_reply:
-        lines += ["", "<details><summary>Draft reply</summary>", "", review.draft_reply, "", "</details>"]
     return lines + [""]
 
 

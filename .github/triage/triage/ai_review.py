@@ -42,13 +42,8 @@ Reply with one JSON object and nothing else:
   "impact_reason": "one sentence",
   "reasons": ["short factual reasons that cite the evidence"],
   "suggested_entry": "the exact line to add, e.g. ||example.com^ or sub.example.com, or empty",
-  "questions_for_reporter": ["only if recommendation is needs_info"],
-  "draft_reply": "a reply to the reporter in plain, warm, precise British English"
+  "questions_for_reporter": ["only if recommendation is needs_info"]
 }}
-
-For draft_reply: state the verdict and summarise the verified findings. Only if the list will change,
-say the change takes effect at the next weekly rebuild (Sundays 00:00 UTC). Do not use em dashes. Do
-not mention the reporter's account, motives or other repositories. Do not promise anything else.
 """
 
 CLASSIFY_PROMPT = f"""\
@@ -78,7 +73,6 @@ class Review:
     reasons: list[str] = field(default_factory=list)
     suggested_entry: str = ""
     questions: list[str] = field(default_factory=list)
-    draft_reply: str = ""
     impact: str = ""
     impact_reason: str = ""
     error: str | None = None
@@ -140,7 +134,6 @@ def _parse(data: dict) -> Review:
         reasons=[_clean(reason, 300) for reason in data.get("reasons", [])[:8]],
         suggested_entry=_clean(data.get("suggested_entry"), 120),
         questions=[_clean(question, 300) for question in data.get("questions_for_reporter", [])[:5]],
-        draft_reply=_clean(data.get("draft_reply"), 2500),
     )
 
 

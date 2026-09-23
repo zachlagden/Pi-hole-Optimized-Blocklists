@@ -147,7 +147,8 @@ def run_issue(options: argparse.Namespace) -> int:
         return 0
     if request.domain is None:
         embed = plain_embed(request.number, request.title, issue["html_url"], request.kind, "No valid domain in the issue. Asked the reporter to fix it.")
-        plan = merge(type_plan, LabelPlan(add={NEEDS_INFO}, notes=["needs info: no valid domain in the issue"]))
+        impact_plan = plan_impact(current, classification.impact, classification.impact_reason) if classification else LabelPlan()
+        plan = merge(type_plan, impact_plan, LabelPlan(add={NEEDS_INFO}, notes=["needs info: no valid domain in the issue"]))
         deliver(github, discord, options, request.number, invalid_domain_comment(request), embed, None, plan)
         return 0
     evidence = gather(request, Path(options.repo_root), github, options)

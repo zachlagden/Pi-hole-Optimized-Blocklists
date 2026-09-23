@@ -41,6 +41,9 @@ def _reason(label: str, brand_label: str) -> str | None:
 
 def find_lookalikes(domain: str, ranks: dict[str, int], pool: int, limit: int = 5) -> list[Lookalike]:
     own = registrable(domain)
+    own_rank = ranks.get(own)
+    if own_rank is not None and own_rank <= pool:
+        return []
     label = registrable_label(domain)
     found: list[Lookalike] = []
     for brand, rank in ranks.items():
