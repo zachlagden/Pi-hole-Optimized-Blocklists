@@ -1001,15 +1001,15 @@ archidekt-cloudflare.com
 # Lambung Mangkurat University, a public university in South Kalimantan, Indonesia. HaGeZi Pro
 # blocks the whole domain, most likely collateral from a past compromise of one department host
 # (ppds.anestesi.ulm.ac.id, still in HaGeZi TIF). Exact apex only, so that host stays blocked.
-# (maintainer review, PR #NN)
+# (maintainer review, PR #129)
 /^ulm\.ac\.id$/
 
 # 快懂百科 (Kuaidong Baike), ByteDance's Chinese encyclopedia (formerly Hudong Baike), registered
-# 2001. Miscategorised as adult by oisd NSFW; no adult content. (maintainer review, PR #NN)
+# 2001. Miscategorised as adult by oisd NSFW; no adult content. (maintainer review, PR #129)
 hudong.com
 
 # Russian football news (fixtures, results, Russian Premier League), registered 2005. Listed by
-# oisd NSFW, probably for bookmaker ads; not adult content. (maintainer review, PR #NN)
+# oisd NSFW, probably for bookmaker ads; not adult content. (maintainer review, PR #129)
 rusfootball.info
 
 # ============================================================================
