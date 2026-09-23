@@ -4,7 +4,7 @@ This file provides context to Claude Code (claude.ai/code) when working with thi
 
 ## Project Overview
 
-Pre-optimized, deduplicated blocklists for Pi-hole. Lists are built weekly from 59 upstream sources using the [Pi-hole-Blocklist-Optimizer](https://github.com/zachlagden/Pi-hole-Blocklist-Optimizer) Rust binary, then committed and served via GitHub + Git LFS.
+Pre-optimized, deduplicated blocklists for Pi-hole. Lists are built weekly from the upstream sources in `blocklists.conf` using the [Pi-hole-Blocklist-Optimizer](https://github.com/zachlagden/Pi-hole-Blocklist-Optimizer) Rust binary, then committed and served via GitHub + Git LFS.
 
 ## How It Works
 
@@ -22,8 +22,8 @@ Pi-hole-Optimized-Blocklists/
 ├── .github/
 │   ├── workflows/
 │   │   ├── update-blocklists.yml   # Weekly blocklist update automation
-│   │   ├── claude-code-review.yml  # Claude Code PR reviews
-│   │   └── claude.yml              # Automated issue processing + @claude assistant
+│   │   └── issue-triage.yml        # Evidence report, AI view and labels on new issues
+│   ├── triage/                     # Python package the triage workflow runs (uv)
 │   ├── ISSUE_TEMPLATE/             # Bug report, block domain, false positive, feature request
 │   ├── PULL_REQUEST_TEMPLATE.md
 │   └── dependabot.yml
@@ -66,11 +66,24 @@ Pi-hole-Optimized-Blocklists/
 - The optimizer binary is downloaded from GitHub Releases, not built locally
 - `nsfw.txt` is deliberately excluded from `all_domains.txt`
 - The workflow uses a `GH_PAT` secret for pushing commits and LFS operations
-- `CLAUDE_CODE_OAUTH_TOKEN` secret is required for Claude Code workflows
+- The triage workflow uses `VIRUSTOTAL_API_KEY`, `MINIMAX_API_KEY`, `DISCORD_TRIAGE_WEBHOOK` and `DISCORD_PING_USER_ID` secrets
 
-## Issue Processing (CI Agent Instructions)
+## Issue Triage Bot
 
-When running as a GitHub Actions agent processing issues, follow these procedures exactly.
+`.github/workflows/issue-triage.yml` runs `.github/triage` (`uv run python -m triage issue <n>`) when an issue opens:
+
+- Posts one report comment (marker `<!-- issue-triage-report -->`, updated in place on re-runs) with deterministic evidence: custom/whitelist matches, which upstream feeds list the domain, VirusTotal, RDAP, Tranco rank, a live fetch with a cloaking check, and lookalike brands for block requests.
+- Asks MiniMax M3 for an advisory view (site description, suggestion, impact, draft reply). It never changes a list.
+- The AI may set labels: fix the type label, set one `impact:` label, and add `needs info`. It never sets `declined` or `duplicate` and never closes issues.
+- Sends a Discord ping for every new issue and for every reply from someone other than the owner. Reporter signals (account age, the same domain filed in other repos) go only to Discord, never to the public comment.
+- Tunable rules (reputable VirusTotal engines, false-positive-prone feeds, threat-intel feeds, thresholds) live in `.github/triage/triage/policy.py`.
+- Re-run on any issue: `gh workflow run issue-triage.yml -f issue=<n>`. Local dry run: `cd .github/triage && uv run python -m triage issue <n> --dry-run` (needs `GITHUB_TOKEN`, optionally `VIRUSTOTAL_API_KEY` and `MINIMAX_API_KEY`).
+
+Labels: type (`blocklist`, `whitelist`, `bug`, `enhancement`), status (`needs info`, `duplicate`, `declined`), impact (`impact: high`, `impact: medium`, `impact: low`) and `maintenance` for Dependabot and CI PRs.
+
+## Issue Processing
+
+When handling a block or whitelist issue, follow these procedures.
 
 ### Blocklist requests (label: `blocklist`)
 

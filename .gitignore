@@ -21,3 +21,9 @@ pihole_blocklists/
 pihole_blocklists_prod/
 download_progress.json
 pihole-optimizer
+
+# Issue triage bot
+.github/triage/.venv/
+.github/triage/.pytest_cache/
+__pycache__/
+triage-output/

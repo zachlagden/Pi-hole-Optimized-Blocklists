@@ -1,0 +1,94 @@
+name: Issue triage
+
+on:
+  issues:
+    types: [opened]
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: Issue number to triage again
+        required: true
+        type: number
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: triage-${{ github.event.issue.number || inputs.issue }}-${{ github.event_name }}
+  cancel-in-progress: false
+
+jobs:
+  triage:
+    if: github.event_name != 'issue_comment'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: .github/triage
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+          cache-dependency-glob: .github/triage/uv.lock
+
+      - name: Restore Tranco, suffix list and browser caches
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cache/issue-triage
+            ~/.cache/ms-playwright
+          key: triage-${{ hashFiles('.github/triage/uv.lock') }}-${{ github.run_id }}
+          restore-keys: triage-${{ hashFiles('.github/triage/uv.lock') }}-
+
+      - name: Install dependencies
+        run: |
+          uv sync --frozen --no-dev
+          uv run playwright install --with-deps chromium
+
+      - name: Triage issue
+        env:
+          ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue }}
+          REPO_ROOT: ${{ github.workspace }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VIRUSTOTAL_API_KEY: ${{ secrets.VIRUSTOTAL_API_KEY }}
+          MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
+          DISCORD_TRIAGE_WEBHOOK: ${{ secrets.DISCORD_TRIAGE_WEBHOOK }}
+          DISCORD_PING_USER_ID: ${{ secrets.DISCORD_PING_USER_ID }}
+        run: uv run python -m triage issue "$ISSUE_NUMBER"
+
+  reply-ping:
+    if: >-
+      github.event_name == 'issue_comment'
+      && !github.event.issue.pull_request
+      && github.event.comment.user.type != 'Bot'
+      && github.event.comment.author_association != 'OWNER'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: .github/triage
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/triage
+
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+          cache-dependency-glob: .github/triage/uv.lock
+
+      - name: Ping on Discord
+        env:
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          COMMENT_ID: ${{ github.event.comment.id }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISCORD_TRIAGE_WEBHOOK: ${{ secrets.DISCORD_TRIAGE_WEBHOOK }}
+          DISCORD_PING_USER_ID: ${{ secrets.DISCORD_PING_USER_ID }}
+        run: |
+          uv sync --frozen --no-dev
+          uv run python -m triage reply "$ISSUE_NUMBER" "$COMMENT_ID"
