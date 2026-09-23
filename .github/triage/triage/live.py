@@ -8,17 +8,18 @@ from urllib.parse import urljoin, urlsplit
 
 import httpx
 
+DESKTOP_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
+MOBILE_UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
+BROWSER_HEADERS = {
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+    "Accept-Language": "en-GB,en;q=0.9",
+    "Upgrade-Insecure-Requests": "1",
+}
 PROFILES = {
-    "desktop": {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36",
-    },
-    "mobile": {
-        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1",
-    },
-    "google referral": {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36",
-        "Referer": "https://www.google.com/",
-    },
+    "desktop": {**BROWSER_HEADERS, "User-Agent": DESKTOP_UA},
+    "mobile": {**BROWSER_HEADERS, "User-Agent": MOBILE_UA},
+    "google referral": {**BROWSER_HEADERS, "User-Agent": DESKTOP_UA, "Referer": "https://www.google.com/"},
+    "email link": {**BROWSER_HEADERS, "User-Agent": DESKTOP_UA, "Referer": "https://t.co/"},
 }
 MAX_REDIRECTS = 8
 MAX_BODY = 2_000_000

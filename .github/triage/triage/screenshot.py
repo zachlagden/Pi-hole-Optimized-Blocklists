@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from urllib.parse import urlsplit
 
-from triage.live import is_public_host
+from triage.live import DESKTOP_UA, is_public_host
 
 MAX_TEXT = 6000
 
@@ -42,6 +42,8 @@ def capture(domain: str, url: str | None = None) -> Capture:
             browser = playwright.chromium.launch()
             context = browser.new_context(
                 viewport={"width": 1280, "height": 900},
+                locale="en-GB",
+                user_agent=DESKTOP_UA,
                 ignore_https_errors=True,
                 accept_downloads=False,
                 service_workers="block",
