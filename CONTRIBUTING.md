@@ -28,6 +28,10 @@ The maintainer will verify the report and add the domain to `whitelist.txt` in t
 
 Use the **Bug Report** template with as much detail as possible. Steps to reproduce are essential. The maintainer will investigate and either fix the problem or follow up with questions.
 
+## What happens after you open an issue
+
+A bot posts an evidence report on block and false-positive issues: where the domain is listed, scanner results and a check of the live site. It also sets labels, including an impact label. The maintainer reads the report and makes every decision.
+
 ## How It Works
 
 - `custom/<category>.txt` files hold community-reported domains to block (one domain per line)
