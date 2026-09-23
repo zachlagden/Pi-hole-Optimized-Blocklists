@@ -16,6 +16,7 @@ class Evidence:
     request: IssueRequest
     domain: str
     apex: str
+    platform: str | None = None
     custom: list[RepoMatch] = field(default_factory=list)
     whitelist: list[RepoMatch] = field(default_factory=list)
     sources: list[SourceResult] = field(default_factory=list)

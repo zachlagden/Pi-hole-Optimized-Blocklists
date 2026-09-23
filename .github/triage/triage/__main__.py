@@ -10,7 +10,7 @@ from typing import TypeVar
 from triage import ai_review, live, render, reputation, screenshot, signals
 from triage.coverage import build_coverage
 from triage.discord import Discord, plain_embed, triage_embed
-from triage.domains import registrable, self_and_parents
+from triage.domains import registrable, self_and_parents, shared_platform
 from triage.evidence import Evidence
 from triage.github_api import GitHub
 from triage.issue_form import IssueRequest, from_issue
@@ -72,7 +72,7 @@ def gather_live(evidence: Evidence, take_screenshot: bool) -> None:
 
 def gather(request: IssueRequest, repo_root: Path, github: GitHub, options: argparse.Namespace) -> Evidence:
     domain = request.domain or ""
-    evidence = Evidence(request=request, domain=domain, apex=registrable(domain))
+    evidence = Evidence(request=request, domain=domain, apex=registrable(domain), platform=shared_platform(domain))
     gather_repo_and_sources(evidence, repo_root)
     gather_reputation(evidence, os.environ.get("VIRUSTOTAL_API_KEY"))
     gather_live(evidence, not options.no_screenshot)

@@ -88,9 +88,16 @@ def _site_signals(evidence: Evidence) -> list[Signal]:
     return signals
 
 
+def _platform_signals(evidence: Evidence) -> list[Signal]:
+    if not evidence.platform:
+        return []
+    return [Signal(NOTE, f"{evidence.apex} is a site on the shared platform {evidence.platform}. Any entry must target {evidence.apex} or a host under it, never {evidence.platform} itself")]
+
+
 def collect(evidence: Evidence, today: date) -> list[Signal]:
     return (
-        _source_signals(evidence)
+        _platform_signals(evidence)
+        + _source_signals(evidence)
         + _virustotal_signals(evidence)
         + _age_signals(evidence, today)
         + _popularity_signals(evidence)
