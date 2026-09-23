@@ -45,3 +45,10 @@ novugs.com
 # Apex + all subdomains (ABP). (maintainer report, PR #87)
 ||kfhomeloans.com^
 ||ozkocinsaat.com.tr^
+# uacred.com — Ukrainian microloan lead-gen / CPA-affiliate site (same operator as infozaem.com
+# above). At first report (#76) it was clean (0/92 VirusTotal) and held; on 2026-09-22 it is flagged
+# 15/90 incl. BitDefender, Fortinet, Sophos, ESET, Webroot, VIPRE, G-Data (mostly Phishing). Code
+# review: no credential form on-page, but it funnels users to loan CPA offers via redirect trackers
+# (rdr.salesdoubler.com.ua / rdr.fmcgsd.net / rdr.pdlsd.kz) that AV vendors classify as scam/phishing.
+# Apex + all subdomains (ABP). (#76, PR #90)
+||uacred.com^
