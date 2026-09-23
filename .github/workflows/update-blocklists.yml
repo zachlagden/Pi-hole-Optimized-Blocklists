@@ -69,6 +69,8 @@ jobs:
         env:
           REPO_ROOT: ${{ github.workspace }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+          VIRUSTOTAL_API_KEY: ${{ secrets.VIRUSTOTAL_API_KEY }}
+          MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
           DISCORD_TRIAGE_WEBHOOK: ${{ secrets.DISCORD_TRIAGE_WEBHOOK }}
           DISCORD_PING_USER_ID: ${{ secrets.DISCORD_PING_USER_ID }}
         run: |

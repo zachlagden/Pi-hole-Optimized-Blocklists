@@ -40,6 +40,7 @@ class Fetch:
     size: int = 0
     digest: str = ""
     script_redirects: list[str] = field(default_factory=list)
+    excerpt: str = ""
     error: str | None = None
 
     @property
@@ -78,6 +79,13 @@ def quoted_urls(text: str, domain: str, limit: int = 3) -> list[str]:
         if url not in found:
             found.append(url)
     return found[:limit]
+
+
+def visible_text(body: bytes, limit: int = 1500) -> str:
+    text = body[:400_000].decode("utf-8", errors="replace")
+    text = re.sub(r"(?is)<(script|style|noscript)[^>]*>.*?</\1>", " ", text)
+    text = html.unescape(re.sub(r"(?s)<[^>]+>", " ", text))
+    return " ".join(text.split())[:limit]
 
 
 def script_redirects(body: bytes) -> list[str]:
@@ -124,6 +132,7 @@ def fetch_url(start: str, profile: str, fallback_http: bool = False) -> Fetch:
             result.size = len(body)
             result.digest = hashlib.sha256(body).hexdigest()[:12]
             result.script_redirects = script_redirects(body)
+            result.excerpt = visible_text(body)
             return result
     result.error = "too many redirects"
     return result
