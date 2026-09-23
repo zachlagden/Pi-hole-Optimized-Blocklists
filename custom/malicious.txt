@@ -67,7 +67,7 @@ novugs.com
 #   shuvo.expertteam.top   sibling kit's credential drop (maintainer report)
 # Same gate kit serving other lures (a Gmail phish and others), found during the investigation:
 #   wahala.pw, zexil.sbs, remindtoviewerofco.pw, safelink.bolashak-dosllc.com
-# Apex + all subdomains (ABP). (#103, #105, #106, #108, #110, #112, PR #NN)
+# Apex + all subdomains (ABP). (#103, #105, #106, #108, #110, #112, PR #114)
 ||fatlantmxppress.us.cc^
 ||amexp.com^
 ||pub-3d47a1b6e45745f2add26014458cb366.r2.dev^
