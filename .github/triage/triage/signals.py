@@ -28,6 +28,8 @@ def _created(evidence: Evidence) -> date | None:
 
 
 def _age_signals(evidence: Evidence, today: date) -> list[Signal]:
+    if evidence.platform:
+        return []
     created = _created(evidence)
     if created is None:
         return []

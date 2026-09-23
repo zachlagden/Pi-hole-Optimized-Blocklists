@@ -65,7 +65,10 @@ def registration_lines(evidence: Evidence) -> list[str]:
     vt_registrar = next((vt.registrar for vt in evidence.virustotal if vt.registrar), "")
     created = (reg.created if reg else None) or vt_created
     registrar = (reg.registrar if reg else "") or vt_registrar
-    lines = [f"`{evidence.apex}` registered {created or 'unknown'}, registrar {safe(registrar) or 'unknown'}"]
+    if evidence.platform:
+        lines = [f"`{evidence.apex}` is a subdomain on `{evidence.platform}`, so registration data describes the platform, not this site"]
+    else:
+        lines = [f"`{evidence.apex}` registered {created or 'unknown'}, registrar {safe(registrar) or 'unknown'}"]
     if reg and reg.nameservers:
         lines.append("Nameservers: " + ", ".join(f"`{ns}`" for ns in reg.nameservers))
     rank = evidence.tranco_rank or evidence.apex_tranco_rank
