@@ -1,0 +1,71 @@
+from dataclasses import dataclass
+
+from triage import ai_review, live
+from triage.github_api import ThreadComment
+from triage.issue_form import IssueRequest
+from triage.state import TriageState, body_sha
+
+
+@dataclass
+class Check:
+    run: bool
+    trigger: str
+    reason: str
+
+
+def unseen_comments(thread: list[ThreadComment], state: TriageState) -> list[ThreadComment]:
+    seen = set(state.seen_comments)
+    return [comment for comment in thread if comment.id not in seen and comment.role != "maintainer"]
+
+
+def describe_trigger(body_changed: bool, comments: list[ThreadComment]) -> str:
+    parts = []
+    if body_changed:
+        parts.append("an edit to the issue")
+    authors = sorted({comment.author for comment in comments})
+    if authors:
+        parts.append("new comments from " + ", ".join(authors))
+    return " and ".join(parts)
+
+
+def new_urls(request: IssueRequest, comments: list[ThreadComment], state: TriageState) -> list[str]:
+    domain = request.domain or state.domain
+    text = "\n".join([request.body] + [comment.body for comment in comments])
+    return [url for url in live.quoted_urls(text, domain, limit=10) if url not in state.seen_urls]
+
+
+def _ai_verdict(request: IssueRequest, state: TriageState, body_changed: bool, comments: list[ThreadComment], api_key: str) -> tuple[bool, str]:
+    context = {
+        "domain": state.domain,
+        "request": request.kind,
+        "last_suggestion": state.recommendation,
+        "open_questions": state.questions,
+        "history": state.history[-3:],
+    }
+    material = [{"from": c.author, "role": c.role, "text": c.body[:3000]} for c in comments]
+    if body_changed:
+        material.insert(0, {"from": request.author, "role": "reporter", "text": "Edited issue body:\n" + request.body[:6000]})
+    try:
+        return ai_review.is_useful(context, material, api_key)
+    except Exception as error:
+        return True, f"usefulness check failed ({type(error).__name__}), re-running to be safe"
+
+
+def check(issue: dict, request: IssueRequest, thread: list[ThreadComment], state: TriageState | None, api_key: str | None) -> Check:
+    if issue.get("state") != "open":
+        return Check(False, "", "the issue is closed")
+    if state is None:
+        return Check(True, "new activity on an issue with no triage state yet", "no previous triage to compare against")
+    body_changed = body_sha(request.body) != state.body_sha
+    comments = unseen_comments(thread, state)
+    if not body_changed and not comments:
+        return Check(False, "", "nothing new since the last triage")
+    trigger = describe_trigger(body_changed, comments)
+    if request.domain and state.domain and request.domain != state.domain:
+        return Check(True, trigger, f"the reported domain changed from {state.domain} to {request.domain}")
+    if urls := new_urls(request, comments, state):
+        return Check(True, trigger, "new URL on the reported domain: " + urls[0])
+    if not api_key:
+        return Check(True, trigger, "no AI key to judge usefulness")
+    useful, reason = _ai_verdict(request, state, body_changed, comments, api_key)
+    return Check(useful, trigger, reason)

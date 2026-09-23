@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TypeVar
 
-from triage import ai_review, live, render, reputation, screenshot, signals
+from triage import ai_review, live, render, reputation, rerun, screenshot, signals
 from triage.coverage import build_coverage
 from triage.discord import Discord, plain_embed, triage_embed
 from triage.domains import registrable, self_and_parents, shared_platform
@@ -17,6 +17,7 @@ from triage.issue_form import IssueRequest, from_issue
 from triage.labels import NEEDS_INFO, LabelPlan, merge, plan_impact, plan_needs_info, plan_type
 from triage.policy import TYPOSQUAT_POOL
 from triage.repo_state import custom_matches, whitelist_matches
+from triage.state import TriageState, body_sha, parse_state
 from triage.sources import load_sources, scan_sources
 from triage.typosquat import find_lookalikes
 
@@ -66,7 +67,8 @@ def gather_live(evidence: Evidence, take_screenshot: bool) -> None:
     evidence.fetches = attempt(evidence, "live fetch", lambda: live.fetch_all(evidence.domain), [])
     evidence.cloaking = live.cloaking_summary(evidence.fetches)
     request = evidence.request
-    urls = live.quoted_urls("\n".join([request.raw_domain, request.evidence, request.details, request.body]), evidence.domain)
+    texts = [request.raw_domain, request.evidence, request.details, request.body] + [c.body for c in request.thread]
+    urls = live.quoted_urls("\n".join(texts), evidence.domain, limit=5)
     evidence.quoted_fetches = [attempt(evidence, f"fetch {url}", lambda u=url: live.fetch_url(u, "desktop"), live.Fetch("desktop", url)) for url in urls]
     live_quoted = next((f.chain[0] for f in evidence.quoted_fetches if f.status and f.status < 400), None)
     if take_screenshot and evidence.addresses:
@@ -85,11 +87,35 @@ def gather(request: IssueRequest, repo_root: Path, github: GitHub, options: argp
     return evidence
 
 
-def invalid_domain_comment(request: IssueRequest) -> str:
+def invalid_domain_comment(request: IssueRequest, state: TriageState) -> str:
     raw = render.safe(request.raw_domain, 120) or "nothing"
     return (
         f"{render.MARKER}\nThe triage bot could not read a valid domain from this issue (it found: `{raw}`). "
-        "Please edit the domain field so it holds a single domain such as `example.com`, without a path."
+        "Please edit the domain field so it holds a single domain such as `example.com`, without a path.\n"
+        + state.to_marker()
+    )
+
+
+def next_state(request: IssueRequest, previous: TriageState | None, review: ai_review.Review | None, trigger: str, fetched: list[str]) -> TriageState:
+    today = datetime.now(UTC).date().isoformat()
+    recommendation = review.recommendation if review and not review.error else "no AI view"
+    confidence = review.confidence if review and not review.error else ""
+    verdict = f"{recommendation.replace('_', ' ')} ({confidence})" if confidence else recommendation.replace("_", " ")
+    history = list(previous.history) if previous else []
+    if previous is None:
+        history.append(f"{today}: first triage, suggested {verdict}")
+    else:
+        was = previous.recommendation.replace("_", " ") or "nothing"
+        history.append(f"{today}: re-run after {trigger or 'a manual request'}, {was} to {verdict}")
+    return TriageState(
+        domain=request.domain or "",
+        body_sha=body_sha(request.body),
+        recommendation=recommendation if review and not review.error else (previous.recommendation if previous else ""),
+        confidence=confidence,
+        questions=review.questions if review and not review.error else [],
+        seen_comments=[c.id for c in request.thread],
+        seen_urls=sorted(set(fetched) | set(previous.seen_urls if previous else [])),
+        history=history[-10:],
     )
 
 
@@ -105,7 +131,7 @@ def write_dry_run(options, number: int, comment: str | None, embed: dict, png: b
     print(f"Dry run written to {out}")
 
 
-def deliver(github: GitHub, discord: Discord | None, options, number: int, comment: str | None, embed: dict, png: bytes | None, plan: LabelPlan) -> None:
+def deliver(github: GitHub, discord: Discord | None, options, number: int, comment: str | None, embed: dict, png: bytes | None, plan: LabelPlan, text: str | None = None) -> None:
     if options.dry_run:
         write_dry_run(options, number, comment, embed, png, plan)
         return
@@ -116,8 +142,8 @@ def deliver(github: GitHub, discord: Discord | None, options, number: int, comme
     if plan.notes:
         embed.setdefault("fields", []).append({"name": "Labels set by the AI", "value": "\n".join(plan.notes)[:1000]})
     if discord:
-        text = "Triage ran again on an issue." if options.rerun else "New issue needs your review."
-        discord.send(text, embed, png)
+        default = "Triage ran again on an issue." if options.rerun else "New issue needs your review."
+        discord.send(text or default, embed, png)
 
 
 def classify_issue(issue: dict, api_key: str | None) -> tuple[ai_review.Classification | None, LabelPlan]:
@@ -141,10 +167,12 @@ def run_issue(options: argparse.Namespace) -> int:
     discord = make_discord(options)
     api_key = None if options.no_ai else os.environ.get("MINIMAX_API_KEY")
     issue = github.issue(options.number)
-    classification, type_plan = classify_issue(issue, api_key)
+    previous = parse_state((github.report(options.number) or {}).get("body"))
+    classification, type_plan = (None, LabelPlan()) if previous else classify_issue(issue, api_key)
     issue = with_labels(issue, type_plan)
     current = {label["name"] for label in issue["labels"]}
     request = from_issue(issue)
+    request.thread = github.thread(issue)
     today = datetime.now(UTC).date()
     if request.kind == "other":
         impact_plan = plan_impact(current, classification.impact, classification.impact_reason) if classification else LabelPlan()
@@ -152,20 +180,37 @@ def run_issue(options: argparse.Namespace) -> int:
         deliver(github, discord, options, request.number, None, embed, None, merge(type_plan, impact_plan))
         return 0
     if request.domain is None:
-        embed = plain_embed(request.number, request.title, issue["html_url"], request.kind, "No valid domain in the issue. Asked the reporter to fix it.")
-        impact_plan = plan_impact(current, classification.impact, classification.impact_reason) if classification else LabelPlan()
-        plan = merge(type_plan, impact_plan, LabelPlan(add={NEEDS_INFO}, notes=["needs info: no valid domain in the issue"]))
-        deliver(github, discord, options, request.number, invalid_domain_comment(request), embed, None, plan)
-        return 0
+        return run_invalid_domain(github, discord, options, issue, request, classification, type_plan, previous)
     evidence = gather(request, Path(options.repo_root), github, options)
     found = signals.collect(evidence, today)
     bar = signals.evidence_bar(evidence) if request.kind == "block" else None
-    review = ai_review.review(evidence, render.facts_text(evidence, found, bar), api_key) if api_key else None
+    facts = render.facts_text(evidence, found, bar)
+    review = ai_review.review(evidence, facts, api_key, previous) if api_key else None
     plan = merge(type_plan, review_label_plan(current, review, classification))
-    comment = render.comment_markdown(evidence, found, bar, review, plan.notes)
+    fetched = [f.start for f in evidence.quoted_fetches if f.start]
+    state = next_state(request, previous, review, options.trigger, fetched)
+    comment = render.comment_markdown(evidence, found, bar, review, plan.notes, state.history, state.to_marker())
     embed = triage_embed(evidence, review, issue["html_url"], today)
-    deliver(github, discord, options, request.number, comment, embed, evidence.capture.png if evidence.capture else None, plan)
+    text = rerun_text(previous, state, options.trigger) if previous else None
+    deliver(github, discord, options, request.number, comment, embed, evidence.capture.png if evidence.capture else None, plan, text)
     return 0
+
+
+def run_invalid_domain(github, discord, options, issue, request, classification, type_plan, previous) -> int:
+    current = {label["name"] for label in issue["labels"]}
+    embed = plain_embed(request.number, request.title, issue["html_url"], request.kind, "No valid domain in the issue. Asked the reporter to fix it.")
+    impact_plan = plan_impact(current, classification.impact, classification.impact_reason) if classification else LabelPlan()
+    needs_info = LabelPlan() if NEEDS_INFO in current else LabelPlan(add={NEEDS_INFO}, notes=["needs info: no valid domain in the issue"])
+    state = next_state(request, previous, ai_review.Review(recommendation="needs_info", confidence="high"), options.trigger, [])
+    deliver(github, discord, options, request.number, invalid_domain_comment(request, state), embed, None, merge(type_plan, impact_plan, needs_info))
+    return 0
+
+
+def rerun_text(previous: TriageState, state: TriageState, trigger: str) -> str:
+    was = previous.recommendation.replace("_", " ") or "nothing"
+    now = state.recommendation.replace("_", " ")
+    change = f"still {now}" if was == now else f"{was} to {now}"
+    return f"Re-triaged after {trigger or 'a manual request'}: {change}."
 
 
 def review_label_plan(current: set[str], review: ai_review.Review | None, classification: ai_review.Classification | None) -> LabelPlan:
@@ -176,15 +221,37 @@ def review_label_plan(current: set[str], review: ai_review.Review | None, classi
     return LabelPlan()
 
 
-def run_reply(options: argparse.Namespace) -> int:
-    discord = make_discord(options)
-    if discord is None:
-        return 0
+def run_check(options: argparse.Namespace) -> int:
     github = GitHub.from_env()
     issue = github.issue(options.number)
+    request = from_issue(issue)
+    if request.kind == "other":
+        ping_reply(options, github, issue)
+        return write_outputs(False, "", "not a domain issue")
+    thread = github.thread(issue)
+    previous = parse_state((github.report(options.number) or {}).get("body"))
+    api_key = None if options.no_ai else os.environ.get("MINIMAX_API_KEY")
+    result = rerun.check(issue, request, thread, previous, api_key)
+    print(f"re-run: {result.run} ({result.reason})")
+    return write_outputs(result.run, result.trigger, result.reason)
+
+
+def ping_reply(options: argparse.Namespace, github: GitHub, issue: dict) -> None:
+    discord = make_discord(options)
+    if discord is None or not options.comment_id:
+        return
     comment = github.comment(options.number, options.comment_id)
     note = f"{comment['user']['login']} replied:\n\n{comment.get('body') or ''}"
     discord.send("New reply on an issue.", plain_embed(options.number, issue["title"], comment["html_url"], "other", note))
+
+
+def write_outputs(run: bool, trigger: str, reason: str) -> int:
+    target = os.environ.get("GITHUB_OUTPUT")
+    if target:
+        with open(target, "a") as handle:
+            handle.write(f"run={'true' if run else 'false'}\n")
+            handle.write(f"trigger={' '.join(trigger.split())}\n")
+            handle.write(f"reason={' '.join(reason.split())}\n")
     return 0
 
 
@@ -207,16 +274,18 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     issue.add_argument("--no-discord", action="store_true")
     issue.add_argument("--no-screenshot", action="store_true")
     issue.add_argument("--rerun", action="store_true", default=os.environ.get("GITHUB_EVENT_NAME", "issues") != "issues")
-    reply = commands.add_parser("reply")
-    reply.add_argument("number", type=int)
-    reply.add_argument("comment_id", type=int)
-    reply.add_argument("--no-discord", action="store_true")
+    issue.add_argument("--trigger", default=os.environ.get("TRIAGE_TRIGGER", ""))
+    check = commands.add_parser("check")
+    check.add_argument("number", type=int)
+    check.add_argument("--comment-id", type=int, default=None)
+    check.add_argument("--no-ai", action="store_true")
+    check.add_argument("--no-discord", action="store_true")
     return parser.parse_args(argv)
 
 
 def main(argv: list[str]) -> int:
     options = parse_args(argv)
-    return run_issue(options) if options.command == "issue" else run_reply(options)
+    return run_issue(options) if options.command == "issue" else run_check(options)
 
 
 if __name__ == "__main__":
