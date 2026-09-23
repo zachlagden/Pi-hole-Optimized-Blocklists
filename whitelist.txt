@@ -1,5 +1,5 @@
 # Zach's Lists - Default Whitelist
-# Last Updated: 14/09/2026 - Allowlisted Archidekt card CDN (card-images.archidekt.com + archidekt-cloudflare.com; CNAME-cloaking false positive)
+# Last Updated: 23/09/2026 - Allowlisted allow-test.example (#124)
 
 # ============================================================================
 # GOOGLE SERVICES
@@ -996,6 +996,9 @@ myaddr.dev
 # blocked. (#86, PR #88)
 card-images.archidekt.com
 archidekt-cloudflare.com
+
+# allow-test.example: found while triaging this issue. (#124)
+allow-test.example
 
 # ============================================================================
 # REGEX PATTERNS
