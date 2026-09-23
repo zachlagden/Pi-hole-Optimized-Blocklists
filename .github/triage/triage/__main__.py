@@ -106,7 +106,8 @@ def next_state(request: IssueRequest, previous: TriageState | None, review: ai_r
         history.append(f"{today}: first triage, suggested {verdict}")
     else:
         was = previous.recommendation.replace("_", " ") or "nothing"
-        history.append(f"{today}: re-run after {trigger or 'a manual request'}, {was} to {verdict}")
+        change = f"still {verdict}" if previous.recommendation == recommendation else f"{was} to {verdict}"
+        history.append(f"{today}: re-run after {trigger or 'a manual request'}, {change}")
     return TriageState(
         domain=request.domain or "",
         body_sha=body_sha(request.body),
