@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TypeVar
 
-from triage import ai_review, live, render, reputation, rerun, screenshot, signals
+from triage import ai_review, command_runner, live, render, reputation, rerun, screenshot, signals
 from triage.coverage import build_coverage
 from triage.discord import Discord, plain_embed, triage_embed
 from triage.domains import registrable, self_and_parents, shared_platform
@@ -17,7 +17,7 @@ from triage.issue_form import IssueRequest, from_issue
 from triage.labels import NEEDS_INFO, LabelPlan, merge, plan_impact, plan_needs_info, plan_type
 from triage.policy import TYPOSQUAT_POOL
 from triage.repo_state import custom_matches, whitelist_matches
-from triage.state import MAX_STORED_BODY, TriageState, body_sha, parse_state
+from triage.state import TriageState, parse_state
 from triage.sources import load_sources, scan_sources
 from triage.typosquat import find_lookalikes
 
@@ -96,31 +96,6 @@ def invalid_domain_comment(request: IssueRequest, state: TriageState) -> str:
     )
 
 
-def next_state(request: IssueRequest, previous: TriageState | None, review: ai_review.Review | None, trigger: str, fetched: list[str]) -> TriageState:
-    today = datetime.now(UTC).date().isoformat()
-    recommendation = review.recommendation if review and not review.error else "no AI view"
-    confidence = review.confidence if review and not review.error else ""
-    verdict = f"{recommendation.replace('_', ' ')} ({confidence})" if confidence else recommendation.replace("_", " ")
-    history = list(previous.history) if previous else []
-    if previous is None:
-        history.append(f"{today}: first triage, suggested {verdict}")
-    else:
-        was = previous.recommendation.replace("_", " ") or "nothing"
-        change = f"still {verdict}" if previous.recommendation == recommendation else f"{was} to {verdict}"
-        history.append(f"{today}: re-run after {trigger or 'a manual request'}, {change}")
-    return TriageState(
-        domain=request.domain or "",
-        body_sha=body_sha(request.body),
-        body=request.body[:MAX_STORED_BODY],
-        recommendation=recommendation if review and not review.error else (previous.recommendation if previous else ""),
-        confidence=confidence,
-        questions=review.questions if review and not review.error else [],
-        seen_comments=[c.id for c in request.thread],
-        seen_urls=sorted(set(fetched) | set(previous.seen_urls if previous else [])),
-        history=history[-10:],
-    )
-
-
 def write_dry_run(options, number: int, comment: str | None, embed: dict, png: bytes | None, plan: LabelPlan) -> None:
     out = Path(options.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -190,10 +165,10 @@ def run_issue(options: argparse.Namespace) -> int:
     review = ai_review.review(evidence, facts, api_key, previous) if api_key else None
     plan = merge(type_plan, review_label_plan(current, review, classification))
     fetched = [f.start for f in evidence.quoted_fetches if f.start]
-    state = next_state(request, previous, review, options.trigger, fetched)
+    state = rerun.next_state(request, previous, review, options.trigger, fetched, evidence)
     comment = render.comment_markdown(evidence, found, bar, review, plan.notes, state.history, state.to_marker())
     embed = triage_embed(evidence, review, issue["html_url"], today)
-    text = rerun_text(previous, state, options.trigger) if previous else None
+    text = rerun.rerun_text(previous, state, options.trigger) if previous else None
     deliver(github, discord, options, request.number, comment, embed, evidence.capture.png if evidence.capture else None, plan, text)
     return 0
 
@@ -203,16 +178,9 @@ def run_invalid_domain(github, discord, options, issue, request, classification,
     embed = plain_embed(request.number, request.title, issue["html_url"], request.kind, "No valid domain in the issue. Asked the reporter to fix it.")
     impact_plan = plan_impact(current, classification.impact, classification.impact_reason) if classification else LabelPlan()
     needs_info = LabelPlan() if NEEDS_INFO in current else LabelPlan(add={NEEDS_INFO}, notes=["needs info: no valid domain in the issue"])
-    state = next_state(request, previous, ai_review.Review(recommendation="needs_info", confidence="high"), options.trigger, [])
+    state = rerun.next_state(request, previous, ai_review.Review(recommendation="needs_info", confidence="high"), options.trigger, [])
     deliver(github, discord, options, request.number, invalid_domain_comment(request, state), embed, None, merge(type_plan, impact_plan, needs_info))
     return 0
-
-
-def rerun_text(previous: TriageState, state: TriageState, trigger: str) -> str:
-    was = previous.recommendation.replace("_", " ") or "nothing"
-    now = state.recommendation.replace("_", " ")
-    change = f"still {now}" if was == now else f"{was} to {now}"
-    return f"Re-triaged after {trigger or 'a manual request'}: {change}."
 
 
 def review_label_plan(current: set[str], review: ai_review.Review | None, classification: ai_review.Classification | None) -> LabelPlan:
@@ -282,11 +250,18 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     check.add_argument("--comment-id", type=int, default=None)
     check.add_argument("--no-ai", action="store_true")
     check.add_argument("--no-discord", action="store_true")
+    command = commands.add_parser("command")
+    command.add_argument("number", type=int)
+    command.add_argument("comment_id", type=int)
+    command.add_argument("--repo-root", default=os.environ.get("REPO_ROOT", "../.."))
+    command.add_argument("--no-discord", action="store_true")
     return parser.parse_args(argv)
 
 
 def main(argv: list[str]) -> int:
     options = parse_args(argv)
+    if options.command == "command":
+        return command_runner.run(options.number, options.comment_id, Path(options.repo_root), make_discord(options))
     return run_issue(options) if options.command == "issue" else run_check(options)
 
 

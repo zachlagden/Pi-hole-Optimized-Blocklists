@@ -1,10 +1,12 @@
 from dataclasses import dataclass
+from datetime import UTC, datetime
 
-from triage import ai_review, live
+from triage import ai_review, live, render
+from triage.evidence import Evidence
 from triage.github_api import ThreadComment
 from triage.issue_form import IssueRequest
 from triage.domains import clean_domain
-from triage.state import TriageState, added_words, body_diff, body_sha
+from triage.state import MAX_STORED_BODY, TriageState, added_words, body_diff, body_sha
 
 COSMETIC_WORD_LIMIT = 3
 
@@ -84,3 +86,37 @@ def check(issue: dict, request: IssueRequest, thread: list[ThreadComment], state
         return Check(True, trigger, "no AI key to judge usefulness")
     useful, reason = _ai_verdict(request, state, body_changed, comments, api_key)
     return Check(useful, trigger, reason)
+
+
+def next_state(request: IssueRequest, previous: TriageState | None, review: ai_review.Review | None, trigger: str, fetched: list[str], evidence: Evidence | None = None) -> TriageState:
+    today = datetime.now(UTC).date().isoformat()
+    recommendation = review.recommendation if review and not review.error else "no AI view"
+    confidence = review.confidence if review and not review.error else ""
+    verdict = f"{recommendation.replace('_', ' ')} ({confidence})" if confidence else recommendation.replace("_", " ")
+    history = list(previous.history) if previous else []
+    if previous is None:
+        history.append(f"{today}: first triage, suggested {verdict}")
+    else:
+        was = previous.recommendation.replace("_", " ") or "nothing"
+        change = f"still {verdict}" if previous.recommendation == recommendation else f"{was} to {verdict}"
+        history.append(f"{today}: re-run after {trigger or 'a manual request'}, {change}")
+    return TriageState(
+        domain=request.domain or "",
+        body_sha=body_sha(request.body),
+        body=request.body[:MAX_STORED_BODY],
+        recommendation=recommendation if review and not review.error else (previous.recommendation if previous else ""),
+        confidence=confidence,
+        questions=review.questions if review and not review.error else [],
+        site=render.first_sentence(review.site) if review and not review.error else "",
+        evidence=render.evidence_note(evidence) if evidence else "",
+        seen_comments=[c.id for c in request.thread],
+        seen_urls=sorted(set(fetched) | set(previous.seen_urls if previous else [])),
+        history=history[-10:],
+    )
+
+
+def rerun_text(previous: TriageState, state: TriageState, trigger: str) -> str:
+    was = previous.recommendation.replace("_", " ") or "nothing"
+    now = state.recommendation.replace("_", " ")
+    change = f"still {now}" if was == now else f"{was} to {now}"
+    return f"Re-triaged after {trigger or 'a manual request'}: {change}."

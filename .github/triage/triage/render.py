@@ -4,6 +4,7 @@ from triage.ai_review import Review
 from triage.evidence import Evidence
 from triage.github_api import MARKER
 from triage.signals import NOTE, TOWARD_ALLOW, TOWARD_BLOCK, Signal
+from triage.signals import provider_flags as _provider_flags
 
 LEAN_LABEL = {TOWARD_BLOCK: "Points to block", TOWARD_ALLOW: "Points to allow", NOTE: "Note"}
 UNSAFE_MD_RE = re.compile(r"[<>`|\[\]]")
@@ -188,3 +189,21 @@ def comment_markdown(
     if state_marker:
         lines.append(state_marker)
     return "\n".join(lines)
+
+
+def evidence_note(evidence: Evidence) -> str:
+    parts = []
+    for vt in evidence.virustotal:
+        if vt.found and vt.malicious + vt.suspicious:
+            names = ", ".join(vt.reputable_hits[:4])
+            parts.append(f"VT {vt.malicious + vt.suspicious}/{vt.total} for {vt.domain}" + (f" incl. {names}" if names else ""))
+    created = evidence.registration.created if evidence.registration else None
+    if created and not evidence.platform:
+        parts.append(f"registered {created}")
+    parts += [flag for flag in _provider_flags(evidence)]
+    return "; ".join(parts)
+
+
+def first_sentence(text: str, limit: int = 180) -> str:
+    sentence = (text or "").replace("&lt;", "<").replace("&gt;", ">").split(". ")[0].strip().rstrip(".")
+    return sentence[:limit]
