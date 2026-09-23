@@ -3,6 +3,7 @@ from datetime import date
 
 from triage.evidence import Evidence
 from triage.policy import (
+    PROVIDER_PHISHING_TITLES,
     FP_PRONE_SOURCES,
     MIN_REPUTABLE_VT_HITS,
     POPULAR_RANK,
@@ -79,8 +80,18 @@ def _popularity_signals(evidence: Evidence) -> list[Signal]:
     return []
 
 
+def provider_flags(evidence: Evidence) -> list[str]:
+    flags = []
+    for fetch in evidence.fetches + evidence.quoted_fetches:
+        title = fetch.title.lower()
+        for marker, meaning in PROVIDER_PHISHING_TITLES.items():
+            if marker in title and fetch.chain:
+                flags.append(f"{fetch.chain[0]} returns {meaning}")
+    return sorted(set(flags))
+
+
 def _site_signals(evidence: Evidence) -> list[Signal]:
-    signals = []
+    signals = [Signal(TOWARD_BLOCK, flag) for flag in provider_flags(evidence)]
     if evidence.cloaking:
         signals.append(Signal(TOWARD_BLOCK, f"Possible cloaking: {evidence.cloaking}"))
     for lookalike in evidence.lookalikes:
@@ -118,6 +129,7 @@ def evidence_bar(evidence: Evidence) -> tuple[bool, str]:
     intel = [name for name in evidence.blocking_sources if name in THREAT_INTEL_SOURCES]
     if intel:
         reasons.append("listed by " + ", ".join(intel))
+    reasons += provider_flags(evidence)
     if reasons:
         return True, "; ".join(reasons)
     return False, "no reputable multi-engine detection and no threat-intel listing; needs evidence such as a captured phishing page"
