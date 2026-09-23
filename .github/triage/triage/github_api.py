@@ -35,6 +35,11 @@ def _role(comment: dict, issue_author: str) -> str:
     return "someone else"
 
 
+def is_buried(comments: list[dict], report: dict) -> bool:
+    later = comments[comments.index(report) + 1 :]
+    return any(c["user"].get("type") != "Bot" and c.get("author_association") != "OWNER" for c in later)
+
+
 class GitHub:
     def __init__(self, token: str, repository: str) -> None:
         self.repository = repository
@@ -89,12 +94,18 @@ class GitHub:
         ]
 
     def upsert_report(self, number: int, body: str) -> str:
-        existing = self.report(number)
-        if existing:
+        comments = self.comments(number)
+        existing = next((c for c in comments if MARKER in (c.get("body") or "")), None)
+        if existing and not is_buried(comments, existing):
             response = self.client.patch(f"/repos/{self.repository}/issues/comments/{existing['id']}", json={"body": body})
-        else:
-            response = self.client.post(f"/repos/{self.repository}/issues/{number}/comments", json={"body": body})
+            response.raise_for_status()
+            return response.json()["html_url"]
+        response = self.client.post(f"/repos/{self.repository}/issues/{number}/comments", json={"body": body})
         response.raise_for_status()
+        if existing:
+            deleted = self.client.delete(f"/repos/{self.repository}/issues/comments/{existing['id']}")
+            if deleted.status_code != 404:
+                deleted.raise_for_status()
         return response.json()["html_url"]
 
     def edit_labels(self, number: int, add: set[str], remove: set[str]) -> None:
