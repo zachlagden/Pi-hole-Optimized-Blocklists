@@ -34,6 +34,12 @@ THREAT_INTEL_SOURCES = {
     "shadowwhisperer_scam",
 }
 
+PROVIDER_PHISHING_TITLES = {
+    "suspected phishing": "Cloudflare's suspected-phishing block page",
+    "deceptive site ahead": "Google Safe Browsing's deceptive-site warning",
+    "phishing site warning": "a host's phishing warning page",
+}
+
 POPULAR_RANK = 100_000
 YOUNG_DOMAIN_DAYS = 90
 TYPOSQUAT_POOL = 10_000
