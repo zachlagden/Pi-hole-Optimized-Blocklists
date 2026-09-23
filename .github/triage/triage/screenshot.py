@@ -14,14 +14,17 @@ class Capture:
     error: str | None = None
 
 
-def _open(page, domain: str, error_type: type[Exception]) -> None:
+def _open(page, domain: str, url: str | None, error_type: type[Exception]) -> None:
+    if url:
+        page.goto(url, wait_until="load", timeout=30_000)
+        return
     try:
         page.goto(f"https://{domain}/", wait_until="load", timeout=30_000)
     except error_type:
         page.goto(f"http://{domain}/", wait_until="load", timeout=30_000)
 
 
-def capture(domain: str) -> Capture:
+def capture(domain: str, url: str | None = None) -> Capture:
     try:
         from playwright.sync_api import Error, sync_playwright
     except ImportError:
@@ -45,7 +48,7 @@ def capture(domain: str) -> Capture:
             )
             context.route("**/*", guard)
             page = context.new_page()
-            _open(page, domain, Error)
+            _open(page, domain, url, Error)
             page.wait_for_timeout(2500)
             png = page.screenshot(full_page=False)
             text = page.inner_text("body")[:MAX_TEXT]

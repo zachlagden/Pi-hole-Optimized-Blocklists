@@ -22,6 +22,7 @@ PROFILES = {
 }
 MAX_REDIRECTS = 8
 MAX_BODY = 2_000_000
+URL_RE = re.compile(r"(?:blob:)?https?://[^\s<>()\[\]\"'`]+", re.IGNORECASE)
 TITLE_RE = re.compile(r"<title[^>]*>(.*?)</title>", re.IGNORECASE | re.DOTALL)
 
 
@@ -58,9 +59,28 @@ def _title(body: bytes) -> str:
     return " ".join(html.unescape(match.group(1)).split())[:200] if match else ""
 
 
+def quoted_urls(text: str, domain: str, limit: int = 3) -> list[str]:
+    found: list[str] = []
+    for match in URL_RE.findall(text or ""):
+        url = match.removeprefix("blob:").rstrip(".,;:!?'\")>")
+        parts = urlsplit(url)
+        host = (parts.hostname or "").lower()
+        if host != domain and not host.endswith("." + domain):
+            continue
+        if parts.path in {"", "/"} and not parts.query:
+            continue
+        if url not in found:
+            found.append(url)
+    return found[:limit]
+
+
 def fetch(domain: str, profile: str) -> Fetch:
+    return fetch_url(f"https://{domain}/", profile, fallback_http=True)
+
+
+def fetch_url(start: str, profile: str, fallback_http: bool = False) -> Fetch:
     result = Fetch(profile)
-    url = f"https://{domain}/"
+    url = start
     with httpx.Client(headers=PROFILES[profile], timeout=20, follow_redirects=False, verify=False) as client:
         for _ in range(MAX_REDIRECTS + 1):
             host = urlsplit(url).hostname or ""
@@ -71,8 +91,8 @@ def fetch(domain: str, profile: str) -> Fetch:
             try:
                 response = client.get(url)
             except httpx.HTTPError as error:
-                if len(result.chain) == 1 and url.startswith("https://"):
-                    url = f"http://{domain}/"
+                if fallback_http and len(result.chain) == 1 and url.startswith("https://"):
+                    url = "http://" + url.removeprefix("https://")
                     result.chain.clear()
                     continue
                 result.error = f"{type(error).__name__}"

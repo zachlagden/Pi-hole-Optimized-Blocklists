@@ -61,6 +61,18 @@ jobs:
           DISCORD_PING_USER_ID: ${{ secrets.DISCORD_PING_USER_ID }}
         run: uv run python -m triage issue "$ISSUE_NUMBER"
 
+      - name: Ping on failure
+        if: failure()
+        working-directory: ${{ github.workspace }}
+        env:
+          DISCORD_TRIAGE_WEBHOOK: ${{ secrets.DISCORD_TRIAGE_WEBHOOK }}
+          DISCORD_PING_USER_ID: ${{ secrets.DISCORD_PING_USER_ID }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          jq -n --arg id "$DISCORD_PING_USER_ID" --arg url "$RUN_URL" \
+            '{content: "<@\($id)> The issue triage workflow failed: \($url)", allowed_mentions: {users: [$id]}}' \
+            | curl -fsS -H 'Content-Type: application/json' -d @- "$DISCORD_TRIAGE_WEBHOOK"
+
   reply-ping:
     if: >-
       github.event_name == 'issue_comment'
@@ -92,3 +104,15 @@ jobs:
         run: |
           uv sync --frozen --no-dev
           uv run python -m triage reply "$ISSUE_NUMBER" "$COMMENT_ID"
+
+      - name: Ping on failure
+        if: failure()
+        working-directory: ${{ github.workspace }}
+        env:
+          DISCORD_TRIAGE_WEBHOOK: ${{ secrets.DISCORD_TRIAGE_WEBHOOK }}
+          DISCORD_PING_USER_ID: ${{ secrets.DISCORD_PING_USER_ID }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          jq -n --arg id "$DISCORD_PING_USER_ID" --arg url "$RUN_URL" \
+            '{content: "<@\($id)> The issue triage workflow failed: \($url)", allowed_mentions: {users: [$id]}}' \
+            | curl -fsS -H 'Content-Type: application/json' -d @- "$DISCORD_TRIAGE_WEBHOOK"

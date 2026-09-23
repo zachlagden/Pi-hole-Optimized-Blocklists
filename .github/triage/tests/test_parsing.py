@@ -69,3 +69,28 @@ def test_shared_platform_hosts_are_their_own_site():
     assert shared_platform("pub-abc.r2.dev") == "r2.dev"
     assert shared_platform("a.b.example.co.uk") is None
     assert self_and_parents("x.fatlantmxppress.us.cc") == ["x.fatlantmxppress.us.cc", "fatlantmxppress.us.cc"]
+
+
+def test_quoted_urls_keep_paths_on_the_reported_host():
+    from triage.live import quoted_urls
+    text = (
+        "lands on https://fatlantmxppress.us.cc/2b6848c72a3e, then "
+        "blob:https://pub-abc.r2.dev/daaab2f0 and https://t.co/nlVIYkWx9I plus https://fatlantmxppress.us.cc/"
+    )
+    assert quoted_urls(text, "fatlantmxppress.us.cc") == ["https://fatlantmxppress.us.cc/2b6848c72a3e"]
+    assert quoted_urls(text, "pub-abc.r2.dev") == ["https://pub-abc.r2.dev/daaab2f0"]
+    assert quoted_urls(text, "example.com") == []
+
+
+def test_old_age_gives_no_allow_credit_when_block_signals_exist():
+    from datetime import date
+    from triage.evidence import Evidence
+    from triage.issue_form import IssueRequest
+    from triage.reputation import Registration, VirusTotal
+    from triage.signals import TOWARD_ALLOW, collect
+    request = IssueRequest(1, "block", "t", "a", "", "amexp.com", "amexp.com")
+    flagged = VirusTotal("amexp.com", True, engines=[("Fortinet", "malicious", "phishing"), ("Webroot", "malicious", "x")])
+    evidence = Evidence(request, "amexp.com", "amexp.com", virustotal=[flagged], registration=Registration("amexp.com", date(2002, 5, 24)))
+    assert not [s for s in collect(evidence, date(2026, 9, 23)) if s.lean == TOWARD_ALLOW]
+    evidence.virustotal = [VirusTotal("amexp.com", True)]
+    assert any("registered since" in s.text for s in collect(evidence, date(2026, 9, 23)))

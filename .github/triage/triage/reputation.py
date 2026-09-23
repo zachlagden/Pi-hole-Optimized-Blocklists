@@ -1,5 +1,6 @@
 import csv
 import io
+import time
 import zipfile
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
@@ -9,6 +10,8 @@ import httpx
 
 from triage.policy import REPUTABLE_VT_ENGINES
 
+VT_ATTEMPTS = 3
+VT_RETRY_SECONDS = 30
 VT_URL = "https://www.virustotal.com/api/v3/domains/{domain}"
 RDAP_URL = "https://rdap.org/domain/{domain}"
 TRANCO_LATEST = "https://tranco-list.eu/api/lists/date/latest"
@@ -50,9 +53,18 @@ def _to_date(timestamp: int | None) -> date | None:
     return datetime.fromtimestamp(timestamp, UTC).date() if timestamp else None
 
 
+def _virustotal_get(domain: str, api_key: str) -> httpx.Response:
+    for attempt in range(VT_ATTEMPTS):
+        response = httpx.get(VT_URL.format(domain=domain), headers={"x-apikey": api_key}, timeout=30)
+        if response.status_code != 429 or attempt == VT_ATTEMPTS - 1:
+            return response
+        time.sleep(VT_RETRY_SECONDS)
+    return response
+
+
 def virustotal(domain: str, api_key: str) -> VirusTotal:
     try:
-        response = httpx.get(VT_URL.format(domain=domain), headers={"x-apikey": api_key}, timeout=30)
+        response = _virustotal_get(domain, api_key)
     except httpx.HTTPError as error:
         return VirusTotal(domain, found=False, error=str(error))
     if response.status_code == 404:

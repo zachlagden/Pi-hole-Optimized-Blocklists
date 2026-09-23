@@ -28,6 +28,7 @@ class Evidence:
     apex_tranco_rank: int | None = None
     addresses: list[str] = field(default_factory=list)
     fetches: list[Fetch] = field(default_factory=list)
+    quoted_fetches: list[Fetch] = field(default_factory=list)
     cloaking: str | None = None
     capture: Capture | None = None
     lookalikes: list[Lookalike] = field(default_factory=list)
