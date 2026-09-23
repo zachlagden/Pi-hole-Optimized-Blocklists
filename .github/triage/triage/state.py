@@ -1,4 +1,5 @@
 import base64
+import difflib
 import hashlib
 import json
 import re
@@ -11,6 +12,7 @@ STATE_RE = re.compile(r"<!-- triage-state:([A-Za-z0-9+/=]+) -->")
 class TriageState:
     domain: str = ""
     body_sha: str = ""
+    body: str = ""
     recommendation: str = ""
     confidence: str = ""
     questions: list[str] = field(default_factory=list)
@@ -23,9 +25,26 @@ class TriageState:
         return f"<!-- triage-state:{encoded} -->"
 
 
+MAX_STORED_BODY = 8000
+WORD_RE = re.compile(r"[\w.:/?=&%-]+")
+
+
+def normalize_body(body: str) -> str:
+    return "\n".join(line.rstrip() for line in (body or "").strip().splitlines())
+
+
 def body_sha(body: str) -> str:
-    normalized = "\n".join(line.rstrip() for line in (body or "").strip().splitlines())
-    return hashlib.sha256(normalized.encode()).hexdigest()[:16]
+    return hashlib.sha256(normalize_body(body).encode()).hexdigest()[:16]
+
+
+def added_words(old: str, new: str) -> list[str]:
+    old_words = {word.lower().strip(".,:;") for word in WORD_RE.findall(old)}
+    return [word for word in WORD_RE.findall(new) if word.lower().strip(".,:;") not in old_words]
+
+
+def body_diff(old: str, new: str) -> str:
+    lines = difflib.unified_diff(normalize_body(old).splitlines(), normalize_body(new).splitlines(), lineterm="", n=1)
+    return "\n".join(list(lines)[2:])[:6000]
 
 
 def parse_state(comment_body: str | None) -> TriageState | None:

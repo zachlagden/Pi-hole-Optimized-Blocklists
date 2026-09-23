@@ -40,6 +40,25 @@ PROVIDER_PHISHING_TITLES = {
     "phishing site warning": "a host's phishing warning page",
 }
 
+SHARED_PATH_HOSTS = {
+    "storage.googleapis.com": "Google Cloud Storage",
+    "firebasestorage.googleapis.com": "Firebase Storage",
+    "s3.amazonaws.com": "Amazon S3",
+    "docs.google.com": "Google Docs and Forms",
+    "drive.google.com": "Google Drive",
+    "sites.google.com": "Google Sites",
+    "forms.gle": "Google Forms short links",
+    "t.co": "X link shortener",
+    "bit.ly": "Bitly link shortener",
+    "github.com": "GitHub",
+    "raw.githubusercontent.com": "GitHub raw files",
+    "cdn.discordapp.com": "Discord attachments",
+    "www.dropbox.com": "Dropbox",
+    "dropbox.com": "Dropbox",
+    "1drv.ms": "OneDrive short links",
+    "onedrive.live.com": "OneDrive",
+}
+
 POPULAR_RANK = 100_000
 YOUNG_DOMAIN_DAYS = 90
 TYPOSQUAT_POOL = 10_000

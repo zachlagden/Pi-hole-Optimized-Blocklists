@@ -24,6 +24,9 @@ PROFILES = {
 MAX_REDIRECTS = 8
 MAX_BODY = 2_000_000
 URL_RE = re.compile(r"(?:blob:)?https?://[^\s<>()\[\]\"'`]+", re.IGNORECASE)
+LITERAL_REDIRECT_RE = re.compile(r"""location(?:\.href)?\s*(?:=|\.replace\(|\.assign\()\s*["'](https?://[^"']+)["']""")
+VARIABLE_REDIRECT_RE = re.compile(r"""location(?:\.href)?\s*(?:=|\.replace\(|\.assign\()\s*([A-Za-z_$][\w$]*)""")
+ASSIGNMENT_RE = r"""(?:var|let|const)\s+{name}\s*=\s*["'](https?://[^"']+)["']"""
 TITLE_RE = re.compile(r"<title[^>]*>(.*?)</title>", re.IGNORECASE | re.DOTALL)
 
 
@@ -36,6 +39,7 @@ class Fetch:
     title: str = ""
     size: int = 0
     digest: str = ""
+    script_redirects: list[str] = field(default_factory=list)
     error: str | None = None
 
     @property
@@ -76,6 +80,18 @@ def quoted_urls(text: str, domain: str, limit: int = 3) -> list[str]:
     return found[:limit]
 
 
+def script_redirects(body: bytes) -> list[str]:
+    text = body[:500_000].decode("utf-8", errors="replace")
+    found = LITERAL_REDIRECT_RE.findall(text)
+    for name in VARIABLE_REDIRECT_RE.findall(text):
+        found += re.findall(ASSIGNMENT_RE.format(name=re.escape(name)), text)
+    unique: list[str] = []
+    for url in found:
+        if url not in unique:
+            unique.append(url)
+    return unique[:5]
+
+
 def fetch(domain: str, profile: str) -> Fetch:
     return fetch_url(f"https://{domain}/", profile, fallback_http=True)
 
@@ -107,6 +123,7 @@ def fetch_url(start: str, profile: str, fallback_http: bool = False) -> Fetch:
             result.title = _title(body)
             result.size = len(body)
             result.digest = hashlib.sha256(body).hexdigest()[:12]
+            result.script_redirects = script_redirects(body)
             return result
     result.error = "too many redirects"
     return result

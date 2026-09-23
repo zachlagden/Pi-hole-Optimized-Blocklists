@@ -107,3 +107,23 @@ def test_provider_phishing_page_meets_the_bar():
     evidence.quoted_fetches = [Fetch("desktop", chain=["https://pub-x.r2.dev/new.html"], status=403, title="Suspected Phishing  Cloudflare")]
     met, reason = evidence_bar(evidence)
     assert met and "Cloudflare" in reason
+
+
+def test_script_redirects_follow_literals_and_variables():
+    from triage.live import script_redirects
+    page = b'''<script>var trackingDomain = "http://obsidianly.dns64.de/"; var q = window.location.search;
+    window.location.replace(trackingDomain + q); setTimeout(function(){location.href='https://pub-x.r2.dev/new.html'},0)</script>'''
+    assert script_redirects(page) == ["https://pub-x.r2.dev/new.html", "http://obsidianly.dns64.de/"]
+    assert script_redirects(b"<p>no script here</p>") == []
+
+
+def test_shared_path_host_points_to_allow_but_tenant_bucket_does_not():
+    from datetime import date
+    from triage.evidence import Evidence
+    from triage.issue_form import IssueRequest
+    from triage.signals import TOWARD_ALLOW, collect
+    for host, expected in (("storage.googleapis.com", True), ("pub-x.r2.dev", False)):
+        request = IssueRequest(1, "block", "t", "a", "", host, host)
+        evidence = Evidence(request, host, host, platform="googleapis.com" if "google" in host else "r2.dev")
+        found = [s for s in collect(evidence, date(2026, 9, 23)) if s.lean == TOWARD_ALLOW and "by path" in s.text]
+        assert bool(found) is expected

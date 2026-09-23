@@ -4,6 +4,7 @@ from datetime import date
 from triage.evidence import Evidence
 from triage.policy import (
     PROVIDER_PHISHING_TITLES,
+    SHARED_PATH_HOSTS,
     FP_PRONE_SOURCES,
     MIN_REPUTABLE_VT_HITS,
     POPULAR_RANK,
@@ -92,6 +93,9 @@ def provider_flags(evidence: Evidence) -> list[str]:
 
 def _site_signals(evidence: Evidence) -> list[Signal]:
     signals = [Signal(TOWARD_BLOCK, flag) for flag in provider_flags(evidence)]
+    hops = sorted({url for fetch in evidence.fetches + evidence.quoted_fetches for url in fetch.script_redirects})
+    if hops:
+        signals.append(Signal(NOTE, "Page script redirects to " + ", ".join(hops[:3]) + ". Check those hosts too"))
     if evidence.cloaking:
         signals.append(Signal(TOWARD_BLOCK, f"Possible cloaking: {evidence.cloaking}"))
     for lookalike in evidence.lookalikes:
@@ -104,12 +108,20 @@ def _site_signals(evidence: Evidence) -> list[Signal]:
 def _platform_signals(evidence: Evidence) -> list[Signal]:
     if not evidence.platform:
         return []
-    return [Signal(NOTE, f"{evidence.apex} is a site on the shared platform {evidence.platform}. Any entry must target {evidence.apex} or a host under it, never {evidence.platform} itself")]
+    signals = [Signal(NOTE, f"{evidence.apex} is a site on the shared platform {evidence.platform}. Any entry must target {evidence.apex} or a host under it, never {evidence.platform} itself")]
+    return signals
+
+
+def _shared_host_signals(evidence: Evidence) -> list[Signal]:
+    if evidence.domain not in SHARED_PATH_HOSTS:
+        return []
+    return [Signal(TOWARD_ALLOW, f"{evidence.domain} serves many unrelated users by path ({SHARED_PATH_HOSTS[evidence.domain]}). Pi-hole cannot block one path, so report the path to the provider instead")]
 
 
 def collect(evidence: Evidence, today: date) -> list[Signal]:
     others = (
         _platform_signals(evidence)
+        + _shared_host_signals(evidence)
         + _source_signals(evidence)
         + _virustotal_signals(evidence)
         + _popularity_signals(evidence)

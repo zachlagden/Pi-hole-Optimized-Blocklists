@@ -59,7 +59,8 @@ Useful means the messages add something that could change or firm up the decisio
 a URL, a screenshot or scan link, an answer to one of the open questions, a correction to the domain
 or the request, new details about what broke, or an edit that changes the substance of the report.
 Not useful: thanks, "+1", "any update?", "me too" with nothing new, repeating what is already in the
-report, off-topic chat, or cosmetic edits such as typo fixes.
+report, off-topic chat, or cosmetic edits such as typo fixes. An edit is shown as a diff: judge only
+the lines marked + and -, not the parts of the report that were already there.
 
 Reply with one JSON object and nothing else:
 {"useful": true | false, "reason": "one short sentence"}
