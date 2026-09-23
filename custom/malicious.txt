@@ -97,3 +97,5 @@ novugs.com
 # (maintainer report, PR #122)
 ||reviewfixand.com^
 ||securedenvironment.com^
+# block-test.example: Pipeline test entry. (#124, PR #126)
+||block-test.example^
