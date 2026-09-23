@@ -16,6 +16,8 @@ class TriageState:
     recommendation: str = ""
     confidence: str = ""
     questions: list[str] = field(default_factory=list)
+    site: str = ""
+    evidence: str = ""
     seen_comments: list[int] = field(default_factory=list)
     seen_urls: list[str] = field(default_factory=list)
     history: list[str] = field(default_factory=list)

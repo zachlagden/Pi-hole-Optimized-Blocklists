@@ -15,14 +15,14 @@ class Discord:
         self.webhook = webhook
         self.ping_user_id = ping_user_id
 
-    def _content(self, text: str) -> str:
-        return f"<@{self.ping_user_id}> {text}" if self.ping_user_id else text
+    def _content(self, text: str, ping: bool) -> str:
+        return f"<@{self.ping_user_id}> {text}" if self.ping_user_id and ping else text
 
-    def send(self, text: str, embed: dict, png: bytes | None = None) -> None:
+    def send(self, text: str, embed: dict, png: bytes | None = None, ping: bool = True) -> None:
         payload = {
-            "content": self._content(text),
+            "content": self._content(text, ping),
             "embeds": [embed],
-            "allowed_mentions": {"users": [self.ping_user_id] if self.ping_user_id else []},
+            "allowed_mentions": {"users": [self.ping_user_id] if self.ping_user_id and ping else []},
         }
         if png:
             embed["image"] = {"url": "attachment://site.png"}

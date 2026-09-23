@@ -150,3 +150,51 @@ jobs:
           jq -n --arg id "$DISCORD_PING_USER_ID" --arg url "$RUN_URL" \
             '{content: "<@\($id)> The issue triage workflow failed: \($url)", allowed_mentions: {users: [$id]}}' \
             | curl -fsS -H 'Content-Type: application/json' -d @- "$DISCORD_TRIAGE_WEBHOOK"
+
+  command:
+    if: >-
+      github.event_name == 'issue_comment'
+      && !github.event.issue.pull_request
+      && github.event.comment.author_association == 'OWNER'
+      && startsWith(github.event.comment.body, '/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: write
+    defaults:
+      run:
+        working-directory: .github/triage
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: .github/triage/uv.lock
+
+      - name: Run maintainer command
+        env:
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          COMMENT_ID: ${{ github.event.comment.id }}
+          REPO_ROOT: ${{ github.workspace }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISCORD_TRIAGE_WEBHOOK: ${{ secrets.DISCORD_TRIAGE_WEBHOOK }}
+          DISCORD_PING_USER_ID: ${{ secrets.DISCORD_PING_USER_ID }}
+        run: |
+          uv sync --frozen --no-dev
+          uv run python -m triage command "$ISSUE_NUMBER" "$COMMENT_ID"
+
+      - name: Ping on failure
+        if: failure()
+        working-directory: ${{ github.workspace }}
+        env:
+          DISCORD_TRIAGE_WEBHOOK: ${{ secrets.DISCORD_TRIAGE_WEBHOOK }}
+          DISCORD_PING_USER_ID: ${{ secrets.DISCORD_PING_USER_ID }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          jq -n --arg id "$DISCORD_PING_USER_ID" --arg url "$RUN_URL" \
+            '{content: "<@\($id)> A maintainer command failed: \($url)", allowed_mentions: {users: [$id]}}' \
+            | curl -fsS -H 'Content-Type: application/json' -d @- "$DISCORD_TRIAGE_WEBHOOK"
