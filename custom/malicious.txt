@@ -94,6 +94,6 @@ novugs.com
 #                           ESET, BitDefender, G-Data
 #   securedenvironment.com  visitor filter (verify.securedenvironment.com) that decides who sees the
 #                           scam, VT 12/89 incl. ESET, BitDefender, Fortinet, G-Data
-# (maintainer report, PR #NN)
+# (maintainer report, PR #122)
 ||reviewfixand.com^
 ||securedenvironment.com^
