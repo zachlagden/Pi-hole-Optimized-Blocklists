@@ -109,6 +109,7 @@ def next_state(request: IssueRequest, previous: TriageState | None, review: ai_r
         questions=review.questions if review and not review.error else [],
         site=render.first_sentence(review.site) if review and not review.error else "",
         evidence=render.evidence_note(evidence) if evidence else "",
+        vt_reputable=max((len(vt.reputable_hits) for vt in evidence.virustotal), default=0) if evidence else (previous.vt_reputable if previous else 0),
         seen_comments=[c.id for c in request.thread],
         seen_urls=sorted(set(fetched) | set(previous.seen_urls if previous else [])),
         history=history[-10:],

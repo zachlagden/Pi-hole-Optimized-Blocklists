@@ -88,6 +88,14 @@ Maintainer commands (Stage 2): the owner comments on an issue, and the `command`
 - `now` triggers `update-blocklists.yml` straight after the merge.
 - Refusals, posted as a comment with a confused reaction: shared-by-path hosts (`policy.SHARED_PATH_HOSTS`), platform suffixes, domains already listed or whitelisted, closed issues, and unknown commands. Success gets a rocket reaction and a Discord message without a ping.
 
+Scheduled checks (Stage 3):
+- The weekly build (`update-blocklists.yml`) runs `triage buildcheck` after the optimizer, with `continue-on-error` so a bug in the check never blocks the build. It checks three things:
+  - Feed health: each feed's parsed file in `pihole_blocklists/<category>/<name>.txt` is compared with `.github/triage/feed-stats.json`. A feed counts as a problem when it is missing, empty or less than half last week's size.
+  - List size: an `all_domains` shrink of more than 10% holds the commit, so users keep last week's lists, but only when a feed also failed. A big shrink with healthy feeds is treated as upstream pruning. It pings but still commits, because HaGeZi TIF alone can drop 400k entries in a week.
+  - New blocks: domains newly in `all_domains` or `nsfw` that exactly match a Tranco top-100k site, or its `www.` form. Hits from a single feed are listed as worth a look, and hits from several feeds are summarised as likely correct.
+  It pings on problems and sends a quiet summary otherwise.
+- `triage-watch.yml` runs `held` daily: when reputable VirusTotal engines rise on an open block request, it re-triages and pings. On the 1st of each month it runs `remediated`, which lists custom entries whose comment says "review if remediated" and that are clean on VirusTotal now, and `scorecard`, which counts separate whitelisted false-positive reports per feed and alerts at 3 or more. Run either by hand with `gh workflow run triage-watch.yml -f task=<held|remediated|scorecard>`.
+
 Labels: type (`blocklist`, `whitelist`, `bug`, `enhancement`), status (`needs info`, `duplicate`, `declined`), impact (`impact: high`, `impact: medium`, `impact: low`) and `maintenance` for Dependabot and CI PRs.
 
 ## Issue Processing

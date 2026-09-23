@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TypeVar
 
-from triage import ai_review, command_runner, live, render, reputation, rerun, screenshot, signals
+from triage import ai_review, command_runner, live, render, reputation, rerun, scheduled, screenshot, signals
 from triage.coverage import build_coverage
 from triage.discord import Discord, plain_embed, triage_embed
 from triage.domains import registrable, self_and_parents, shared_platform
@@ -197,13 +197,13 @@ def run_check(options: argparse.Namespace) -> int:
     request = from_issue(issue)
     if request.kind == "other":
         ping_reply(options, github, issue)
-        return write_outputs(False, "", "not a domain issue")
+        return scheduled.write_outputs(False, "", "not a domain issue")
     thread = github.thread(issue)
     previous = parse_state((github.report(options.number) or {}).get("body"))
     api_key = None if options.no_ai else os.environ.get("MINIMAX_API_KEY")
     result = rerun.check(issue, request, thread, previous, api_key)
     print(f"re-run: {result.run} ({result.reason})")
-    return write_outputs(result.run, result.trigger, result.reason)
+    return scheduled.write_outputs(result.run, result.trigger, result.reason)
 
 
 def ping_reply(options: argparse.Namespace, github: GitHub, issue: dict) -> None:
@@ -213,16 +213,6 @@ def ping_reply(options: argparse.Namespace, github: GitHub, issue: dict) -> None
     comment = github.comment(options.number, options.comment_id)
     note = f"{comment['user']['login']} replied:\n\n{comment.get('body') or ''}"
     discord.send("New reply on an issue.", plain_embed(options.number, issue["title"], comment["html_url"], "other", note))
-
-
-def write_outputs(run: bool, trigger: str, reason: str) -> int:
-    target = os.environ.get("GITHUB_OUTPUT")
-    if target:
-        with open(target, "a") as handle:
-            handle.write(f"run={'true' if run else 'false'}\n")
-            handle.write(f"trigger={' '.join(trigger.split())}\n")
-            handle.write(f"reason={' '.join(reason.split())}\n")
-    return 0
 
 
 def make_discord(options: argparse.Namespace) -> Discord | None:
@@ -255,11 +245,26 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     command.add_argument("comment_id", type=int)
     command.add_argument("--repo-root", default=os.environ.get("REPO_ROOT", "../.."))
     command.add_argument("--no-discord", action="store_true")
+    build = commands.add_parser("buildcheck")
+    build.add_argument("--repo-root", default=os.environ.get("REPO_ROOT", "../.."))
+    build.add_argument("--old", required=True)
+    build.add_argument("--new", required=True)
+    build.add_argument("--base", required=True)
+    build.add_argument("--stats", required=True)
+    build.add_argument("--no-discord", action="store_true")
+    watcher = commands.add_parser("watch")
+    watcher.add_argument("task", choices=["held", "remediated", "scorecard"])
+    watcher.add_argument("--repo-root", default=os.environ.get("REPO_ROOT", "../.."))
+    watcher.add_argument("--no-discord", action="store_true")
     return parser.parse_args(argv)
 
 
 def main(argv: list[str]) -> int:
     options = parse_args(argv)
+    if options.command == "buildcheck":
+        return scheduled.run_buildcheck(options, make_discord(options))
+    if options.command == "watch":
+        return scheduled.run_watch(options, make_discord(options))
     if options.command == "command":
         return command_runner.run(options.number, options.comment_id, Path(options.repo_root), make_discord(options))
     return run_issue(options) if options.command == "issue" else run_check(options)
