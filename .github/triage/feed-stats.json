@@ -23,8 +23,8 @@
   "hagezi_windows": 388,
   "hagezi_xiaomi": 345,
   "nextdns_cname": 35,
-  "oisd_big": 247504,
-  "oisd_nsfw": 466684,
+  "oisd_big": 247348,
+  "oisd_nsfw": 466986,
   "perflyst_android": 80,
   "perflyst_smarttv": 497,
   "pgl_yoyo": 3554,
@@ -36,5 +36,5 @@
   "spam404": 8140,
   "stalkerware_indicators": 925,
   "stevenblack_porn": 76769,
-  "urlhaus": 385
+  "urlhaus": 386
 }
