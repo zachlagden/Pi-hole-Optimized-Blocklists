@@ -19,6 +19,7 @@ class TriageState:
     site: str = ""
     evidence: str = ""
     vt_reputable: int = 0
+    listed_by: list[str] = field(default_factory=list)
     seen_comments: list[int] = field(default_factory=list)
     seen_urls: list[str] = field(default_factory=list)
     history: list[str] = field(default_factory=list)
