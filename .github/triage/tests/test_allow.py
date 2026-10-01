@@ -156,7 +156,7 @@ def test_fallback_when_the_ai_fails(monkeypatch, reply):
     fake_ai(monkeypatch, reply)
     context = allow_reply.reply_context(["shop.example"], ["shop.example"], "domain", 133, TIMING, from_issue(issue()), state())
     assert allow_reply.reporter_comment("alex", "", context, "key") == (
-        "@alex Thanks for the report. `shop.example` is now allowed in #133. " + TIMING + " Until then, you can allow it on your own Pi-hole."
+        "@alex Thanks for the report. `shop.example` is now allowed in #133. " + TIMING + " If you run a Pi-hole yourself, you can allow it there in the meantime."
     )
 
 
