@@ -1,5 +1,5 @@
 # Zach's Lists - Default Whitelist
-# Last Updated: 01/10/2026 - Allowlisted portal.cakes.example (#135)
+# Last Updated: 01/10/2026 - Allowlisted pastry.example (#135)
 
 # ============================================================================
 # GOOGLE SERVICES
@@ -1023,6 +1023,10 @@ bakery.example
 
 # portal.cakes.example: found while triaging this issue. (#135, PR #138)
 /^portal\.cakes\.example$/
+
+# pastry.example: Thanks for flagging this, an upstream feed had blocked the whole pastry.example
+# network. (#135)
+*.pastry.example
 
 # ============================================================================
 # REGEX PATTERNS
