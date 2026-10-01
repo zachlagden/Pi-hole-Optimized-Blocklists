@@ -1,5 +1,5 @@
 # Zach's Lists - Default Whitelist
-# Last Updated: 01/10/2026 - Allowlisted randomplanet.com (#132)
+# Last Updated: 01/10/2026 - Allowlisted bakery.example (#135)
 
 # ============================================================================
 # GOOGLE SERVICES
@@ -1016,6 +1016,10 @@ rusfootball.info
 # Marietta, GA, distributing a notarized Apple silicon driver for the Zoom TAC-2 Thunderbolt audio
 # inter. VT 1/91 for randomplanet.com; registered 2010-01-16. (#132, PR #133)
 randomplanet.com
+
+# bakery.example: No live site; bakery.example is in the .example reserved TLD and cannot host a
+# real website. (#135)
+bakery.example
 
 # ============================================================================
 # REGEX PATTERNS
