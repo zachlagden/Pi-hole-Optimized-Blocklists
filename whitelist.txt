@@ -1014,7 +1014,7 @@ rusfootball.info
 
 # randomplanet.com: Personal/professional site of Jason Buecker, an audio engineer and drummer in
 # Marietta, GA, distributing a notarized Apple silicon driver for the Zoom TAC-2 Thunderbolt audio
-# inter. VT 1/91 for randomplanet.com; registered 2010-01-16. (#132)
+# inter. VT 1/91 for randomplanet.com; registered 2010-01-16. (#132, PR #133)
 randomplanet.com
 
 # ============================================================================
