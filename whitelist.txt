@@ -1018,7 +1018,7 @@ rusfootball.info
 randomplanet.com
 
 # bakery.example: No live site; bakery.example is in the .example reserved TLD and cannot host a
-# real website. (#135)
+# real website. (#135, PR #136)
 bakery.example
 
 # ============================================================================
