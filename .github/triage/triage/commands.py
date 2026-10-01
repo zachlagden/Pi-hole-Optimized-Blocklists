@@ -10,8 +10,9 @@ from triage.repo_state import custom_matches, whitelist_matches
 ACTIONS = {"block", "allow", "decline", "retriage"}
 CATEGORIES = {"malicious", "advertising", "tracking", "suspicious", "nsfw"}
 HELP = (
-    "Commands: `/block [category] [exact] [now] [domain ...]`, `/allow [now] [domain ...]`, "
-    "`/decline <reason>`, `/retriage`. Text on the lines after the command is posted as the closing message."
+    "Commands: `/block [category] [exact] [now] [domain ...]`, `/allow [exact | subdomains] [now] [domain ...]`, "
+    "`/decline <reason>`, `/retriage`. `/allow` covers the domain and all its subdomains, `exact` only that host, "
+    "`subdomains` only its subdomains. Text on the lines after the command is posted as the closing message."
 )
 SECTION_RULE = re.compile(r"^# =+\s*$")
 WRAP = 100
@@ -22,10 +23,15 @@ class Command:
     action: str
     category: str | None = None
     exact: bool = False
+    subdomains: bool = False
     now: bool = False
     domains: list[str] = field(default_factory=list)
     message: str = ""
     error: str | None = None
+
+    @property
+    def scope(self) -> str:
+        return "exact" if self.exact else "subdomains" if self.subdomains else "domain"
 
 
 def parse(body: str) -> Command | None:
@@ -45,8 +51,10 @@ def parse(body: str) -> Command | None:
         lowered = token.lower()
         if action == "block" and lowered in CATEGORIES:
             command.category = lowered
-        elif action == "block" and lowered == "exact":
+        elif lowered == "exact":
             command.exact = True
+        elif action == "allow" and lowered == "subdomains":
+            command.subdomains = True
         elif lowered == "now":
             command.now = True
         elif domain := clean_domain(token):
@@ -54,6 +62,8 @@ def parse(body: str) -> Command | None:
         else:
             command.error = f"I don't understand `{token}` in `/{action}`. {HELP}"
             return command
+    if command.exact and command.subdomains:
+        command.error = f"Use either `exact` or `subdomains` with `/allow`, not both. {HELP}"
     return command
 
 
@@ -71,11 +81,13 @@ def block_problems(domains: list[str], repo_root: Path) -> list[str]:
     return problems
 
 
-def allow_problems(domains: list[str], repo_root: Path) -> list[str]:
+def allow_problems(domains: list[str], repo_root: Path, scope: str = "domain") -> list[str]:
     problems = []
     for domain in domains:
-        for match in whitelist_matches(repo_root, domain):
-            problems.append(f"`{domain}` is already allowed by `{match.entry}` (`whitelist.txt` line {match.line})")
+        probe = f"x.{domain}" if scope == "subdomains" else domain
+        covered = "its subdomains are" if scope == "subdomains" else "it is"
+        for match in whitelist_matches(repo_root, probe):
+            problems.append(f"`{domain}`: {covered} already allowed by `{match.entry}` (`whitelist.txt` line {match.line})")
     return problems
 
 
@@ -107,3 +119,15 @@ def insert_allow_block(existing: str, block: str, today: str, headline: str) -> 
 
 def entries_for(domains: list[str], exact: bool) -> list[str]:
     return [domain if exact else f"||{domain}^" for domain in domains]
+
+
+def allow_entry(domain: str, scope: str) -> str:
+    if scope == "exact":
+        return "/^" + domain.replace(".", r"\.") + "$/"
+    if scope == "subdomains":
+        return f"*.{domain}"
+    return domain
+
+
+def allow_entries_for(domains: list[str], scope: str) -> list[str]:
+    return [allow_entry(domain, scope) for domain in domains]
