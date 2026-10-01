@@ -310,15 +310,29 @@ def _call(system: str, content: list[dict] | str, api_key: str, timeout: float =
     }
     response = httpx.post(API_URL, json=payload, headers={"Authorization": f"Bearer {api_key}"}, timeout=timeout)
     response.raise_for_status()
-    return response.json()["choices"][0]["message"]["content"]
+    choices = response.json().get("choices") or []
+    message = choices[0].get("message", {}).get("content") if choices else None
+    if not message:
+        raise ValueError("the API returned no message")
+    return str(message)
 
 
-def _json_object(raw: str) -> dict:
-    text = THINK_RE.sub("", raw).strip()
+def _outer_object(text: str) -> dict:
     start, end = text.find("{"), text.rfind("}")
     if start < 0 or end < start:
         raise ValueError("the model did not return JSON")
     return json.loads(text[start : end + 1])
+
+
+def _json_object(raw: str) -> dict:
+    try:
+        return _outer_object(THINK_RE.sub("", raw).strip())
+    except ValueError:
+        thinking, closed, answer = raw.rpartition("</think>")
+        opening = thinking.rfind("{")
+        if not closed or opening < 0 or thinking[opening:].strip() not in {"{", '{"'}:
+            raise
+        return _outer_object(thinking[opening:].strip() + answer.strip())
 
 
 def _call_json(system: str, content: list[dict] | str, api_key: str, attempts: int = 2, timeout: float = 240) -> dict:
