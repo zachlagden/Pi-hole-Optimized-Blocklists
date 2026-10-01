@@ -249,6 +249,9 @@ Mention that they can allow the domain on their own Pi-hole in the meantime.
 Use only the facts given. Invent nothing: no dates, figures, promises or claims about testing.
 Never mention AI, the reporter's account, their motives or other repositories.
 Use no em dashes and no @mentions. The bot adds the mention.
+Never address the reporter by name or guess one. Names in the form fields belong to the site or
+service, not to the reporter, and the mention already addresses them.
+Write complete sentences that each end with a full stop. Never join two sentences with a comma.
 
 Reply with one JSON object and nothing else:
 {"message": "..."}
