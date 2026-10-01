@@ -2,6 +2,11 @@ from triage import ai_review
 from triage.issue_form import IssueRequest
 from triage.state import TriageState
 
+WHAT_CHANGED = (
+    "The domain was added to this project's allowlist (whitelist.txt). The allowlist overrides any "
+    "upstream feed that lists the domain, in this build and in future builds, so it stays unblocked "
+    "even if a feed lists it again."
+)
 SCOPE_WORDS = {
     "domain": ("the domain and all its subdomains", "each domain and all its subdomains"),
     "exact": ("this exact host only", "these exact hosts only"),
@@ -31,6 +36,7 @@ def reply_context(domains: list[str], entries: list[str], scope: str, pr: int, t
         "scope": scope_words(scope, len(domains)),
         "pull_request": f"#{pr}",
         "timing_sentence": timing,
+        "what_changed": WHAT_CHANGED,
     }
     if reported and state:
         context |= {
@@ -53,7 +59,7 @@ def fallback_reply(context: dict) -> str:
     verb = "are" if len(context["domains"]) > 1 else "is"
     return (
         f"Thanks for the report. {listed} {verb} now allowed in {context['pull_request']}. "
-        f"{context['timing_sentence']} Until then, you can allow it on your own Pi-hole."
+        f"{context['timing_sentence']} If you run a Pi-hole yourself, you can allow it there in the meantime."
     )
 
 
