@@ -1,5 +1,5 @@
 # Zach's Lists - Default Whitelist
-# Last Updated: 01/10/2026 - Allowlisted bakery.example (#135)
+# Last Updated: 01/10/2026 - Allowlisted portal.cakes.example (#135)
 
 # ============================================================================
 # GOOGLE SERVICES
@@ -1020,6 +1020,9 @@ randomplanet.com
 # bakery.example: No live site; bakery.example is in the .example reserved TLD and cannot host a
 # real website. (#135, PR #136)
 bakery.example
+
+# portal.cakes.example: found while triaging this issue. (#135)
+/^portal\.cakes\.example$/
 
 # ============================================================================
 # REGEX PATTERNS
