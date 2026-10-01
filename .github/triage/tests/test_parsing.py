@@ -1,3 +1,4 @@
+from triage import ai_review
 from triage.domains import clean_domain, self_and_parents
 from triage.issue_form import from_issue
 from triage.listparse import Entry, entry_blocks, extract_entry
@@ -127,3 +128,24 @@ def test_shared_path_host_points_to_allow_but_tenant_bucket_does_not():
         evidence = Evidence(request, host, host, platform="googleapis.com" if "google" in host else "r2.dev")
         found = [s for s in collect(evidence, date(2026, 9, 23)) if s.lean == TOWARD_ALLOW and "by path" in s.text]
         assert bool(found) is expected
+
+
+def test_json_object_recovers_an_opening_brace_left_inside_the_thinking():
+    raw = '<think>Let me write this up.{"\n</think>\n\nsite": "A bakery.", "recommendation": "decline"}'
+    assert ai_review._json_object(raw) == {"site": "A bakery.", "recommendation": "decline"}
+
+
+def test_json_object_still_reads_a_normal_reply():
+    assert ai_review._json_object('<think>{"draft": 1}</think>\n```json\n{"useful": false}\n```') == {"useful": False}
+
+
+def test_an_empty_api_response_falls_back_instead_of_crashing(monkeypatch):
+    class Response:
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict:
+            return {"choices": None, "base_resp": {"status_code": 1002}}
+
+    monkeypatch.setattr(ai_review.httpx, "post", lambda *args, **kwargs: Response())
+    assert ai_review.reporter_reply({"domains": ["shop.example"]}, "key") == ""
