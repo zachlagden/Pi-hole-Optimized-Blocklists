@@ -1,9 +1,13 @@
+import os
 import time
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
+from triage import allow_reply
 from triage.commands import (
     Command,
+    allow_entries_for,
     allow_problems,
     append_block,
     block_problems,
@@ -14,12 +18,26 @@ from triage.commands import (
 )
 from triage.discord import Discord, plain_embed
 from triage.github_api import GitHub
-from triage.issue_form import from_issue
+from triage.issue_form import IssueRequest, from_issue
 from triage.repo_ops import RepoOps
 from triage.state import TriageState, parse_state
 
 TIMING_NOW = "A rebuild has started, so the change will be in the lists once that run finishes."
 TIMING_WEEKLY = "It takes effect at the next weekly rebuild (Sundays 00:00 UTC)."
+
+
+@dataclass
+class Actor:
+    login: str
+    api_key: str | None = None
+
+
+@dataclass
+class Merged:
+    pr: int
+    pr_url: str
+    entries: list[str]
+    timing: str
 
 
 def run(number: int, comment_id: int, repo_root: Path, discord: Discord | None) -> int:
@@ -35,8 +53,9 @@ def run(number: int, comment_id: int, repo_root: Path, discord: Discord | None) 
     if command.error:
         return refuse(ops, number, comment_id, command.error)
     issue = github.issue(number)
+    actor = Actor((comment.get("user") or {}).get("login", ""), os.environ.get("MINIMAX_API_KEY"))
     try:
-        return handle(github, ops, issue, command, comment_id, repo_root, discord)
+        return handle(github, ops, issue, command, comment_id, repo_root, discord, actor)
     except Exception as error:
         ops.comment(number, f"`/{command.action}` failed: {type(error).__name__}: {error}\n\nIf no merged PR is linked above, nothing was changed.")
         ops.react(comment_id, "confused")
@@ -49,7 +68,7 @@ def refuse(ops: RepoOps, number: int, comment_id: int, reason: str) -> int:
     return 0
 
 
-def handle(github: GitHub, ops: RepoOps, issue: dict, command: Command, comment_id: int, repo_root: Path, discord: Discord | None) -> int:
+def handle(github: GitHub, ops: RepoOps, issue: dict, command: Command, comment_id: int, repo_root: Path, discord: Discord | None, actor: Actor | None = None) -> int:
     number = issue["number"]
     if command.action == "retriage":
         ops.dispatch("issue-triage.yml", {"issue": str(number)})
@@ -68,10 +87,20 @@ def handle(github: GitHub, ops: RepoOps, issue: dict, command: Command, comment_
     domains = command.domains or [d for d in (request.domain or (state.domain if state else None),) if d]
     if not domains:
         return refuse(ops, number, comment_id, "There's no valid domain on this issue. Name one, e.g. `/block example.com`.")
-    problems = block_problems(domains, repo_root) if command.action == "block" else allow_problems(domains, repo_root)
+    problems = block_problems(domains, repo_root) if command.action == "block" else allow_problems(domains, repo_root, command.scope)
     if problems:
         return refuse(ops, number, comment_id, "Nothing changed:\n" + "\n".join(f"- {p}" for p in problems))
-    change(ops, issue, command, domains, state, request.category, request.service, discord)
+    merged = change(ops, issue, command, domains, state, request.category, request.service)
+    if command.action == "block":
+        closing = f"Blocked in #{merged.pr} ({', '.join(f'`{entry}`' for entry in merged.entries)}). {merged.timing}"
+        ops.comment(number, f"{command.message}\n\n{closing}" if command.message else closing)
+    else:
+        closing = allow_reply.closing_line(merged.pr, merged.entries, command.scope, merged.timing)
+        post_allow_replies(ops, command, domains, state, request, merged, closing, actor or Actor(""))
+    ops.close_issue(number, "completed")
+    if discord:
+        verb = "Blocked" if command.action == "block" else "Allowed"
+        discord.send(f"{verb} {', '.join(domains)} from #{number}.", plain_embed(number, issue["title"], merged.pr_url, command.action, closing), ping=False)
     ops.react(comment_id, "rocket")
     return 0
 
@@ -87,12 +116,18 @@ def file_note(command: Command, domains: list[str], state: TriageState | None, n
     return " ".join(part.rstrip(".") + "." if part != source else part for part in parts if part)
 
 
-def change(ops: RepoOps, issue: dict, command: Command, domains: list[str], state: TriageState | None, category: str | None, service: str, discord: Discord | None) -> None:
+def post_allow_replies(ops: RepoOps, command: Command, domains: list[str], state: TriageState | None, request: IssueRequest, merged: Merged, closing: str, actor: Actor) -> None:
+    ops.comment(request.number, allow_reply.mention(actor.login, closing))
+    context = allow_reply.reply_context(domains, merged.entries, command.scope, merged.pr, merged.timing, request, state)
+    ops.comment(request.number, allow_reply.reporter_comment(request.author, command.message, context, actor.api_key))
+
+
+def change(ops: RepoOps, issue: dict, command: Command, domains: list[str], state: TriageState | None, category: str | None, service: str) -> Merged:
     number = issue["number"]
     block = command.action == "block"
     category = command.category or category or "malicious"
     path = f"custom/{category}.txt" if block else "whitelist.txt"
-    entries = entries_for(domains, command.exact) if block else domains
+    entries = entries_for(domains, command.exact) if block else allow_entries_for(domains, command.scope)
     more = " and others" if len(domains) > 1 else ""
     title = f"feat(blocklist): add {domains[0]}{more} to {category} list" if block else f"fix(whitelist): add {domains[0]}{more} for {service.strip() or 'reported false positive'}"
     today = datetime.now(UTC).strftime("%d/%m/%Y")
@@ -111,13 +146,7 @@ def change(ops: RepoOps, issue: dict, command: Command, domains: list[str], stat
     ops.delete_branch(branch)
     if command.now:
         ops.dispatch("update-blocklists.yml")
-    verb = "Blocked" if block else "Allowed"
-    listed = ", ".join(f"`{entry}`" for entry in entries)
-    closing = f"{verb} in #{pr} ({listed}). {TIMING_NOW if command.now else TIMING_WEEKLY}"
-    ops.comment(number, f"{command.message}\n\n{closing}" if command.message else closing)
-    ops.close_issue(number, "completed")
-    if discord:
-        discord.send(f"{verb} {', '.join(domains)} from #{number}.", plain_embed(number, issue["title"], pr_url, "block" if block else "allow", closing), ping=False)
+    return Merged(pr, pr_url, entries, TIMING_NOW if command.now else TIMING_WEEKLY)
 
 
 def pr_body(command: Command, domains: list[str], entries: list[str], path: str, state: TriageState | None, number: int) -> str:

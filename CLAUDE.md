@@ -82,9 +82,10 @@ Pi-hole-Optimized-Blocklists/
 
 Maintainer commands (Stage 2): the owner comments on an issue, and the `command` job acts. It is the only job with `contents: write`. Commits go through the contents API as `github-actions[bot]`, so no git identity is set.
 - `/block [category] [exact] [now] [domain ...]` appends `||domain^` (or a bare entry with `exact`) to `custom/<category>.txt`. The category defaults to the issue's, then `malicious`, and the domain defaults to the reported one. The command opens a PR, merges it, closes the issue as completed and posts the closing message.
-- `/allow [now] [domain ...]` inserts into `whitelist.txt` at the end of REPORTED FALSE POSITIVES and bumps the `Last Updated` header.
+- `/allow [exact | subdomains] [now] [domain ...]` inserts into `whitelist.txt` at the end of REPORTED FALSE POSITIVES and bumps the `Last Updated` header. The default writes `example.com`, which allows the domain and every subdomain. `exact` writes `/^example\.com$/` for that host only, and `subdomains` writes `*.example.com` for the subdomains but not the bare domain. Using both is refused.
+- `/allow` posts two comments, then closes the issue. The first mentions the maintainer and says what changed, in which scope and when. The second mentions the reporter. It is the owner's text if there is any, otherwise a MiniMax reply built from the facts of the change and the triage state (site, evidence, upstream feeds in `listed_by`), with a template fallback if the AI fails.
 - `/decline <reason>` labels the issue `declined` and closes it as not planned. `/retriage` re-runs the triage.
-- Text on the lines after the command is the closing message. With no text, a factual template says where the change landed and when it takes effect. The first paragraph also becomes the file comment, otherwise the AI's site description plus the evidence summary from the triage state.
+- Text on the lines after the command is the closing message (for `/allow`, the reply to the reporter). With no text, a factual template says where the change landed and when it takes effect. The first paragraph also becomes the file comment, otherwise the AI's site description plus the evidence summary from the triage state.
 - `now` triggers `update-blocklists.yml` straight after the merge.
 - Refusals, posted as a comment with a confused reaction: shared-by-path hosts (`policy.SHARED_PATH_HOSTS`), platform suffixes, domains already listed or whitelisted, closed issues, and unknown commands. Success gets a rocket reaction and a Discord message without a ping.
 
