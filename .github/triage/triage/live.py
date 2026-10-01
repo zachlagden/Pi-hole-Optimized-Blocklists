@@ -8,6 +8,8 @@ from urllib.parse import urljoin, urlsplit
 
 import httpx
 
+from triage.decoding import decode_page
+
 DESKTOP_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
 MOBILE_UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1"
 BROWSER_HEADERS = {
@@ -61,8 +63,12 @@ def is_public_host(host: str) -> bool:
     return bool(addresses) and all(ipaddress.ip_address(address).is_global for address in addresses)
 
 
-def _title(body: bytes) -> str:
-    match = TITLE_RE.search(body[:200_000].decode("utf-8", errors="replace"))
+def _text(page: str | bytes) -> str:
+    return page if isinstance(page, str) else decode_page(page)
+
+
+def _title(page: str | bytes) -> str:
+    match = TITLE_RE.search(_text(page)[:200_000])
     return " ".join(html.unescape(match.group(1)).split())[:200] if match else ""
 
 
@@ -81,15 +87,15 @@ def quoted_urls(text: str, domain: str, limit: int = 3) -> list[str]:
     return found[:limit]
 
 
-def visible_text(body: bytes, limit: int = 1500) -> str:
-    text = body[:400_000].decode("utf-8", errors="replace")
+def visible_text(page: str | bytes, limit: int = 1500) -> str:
+    text = _text(page)[:400_000]
     text = re.sub(r"(?is)<(script|style|noscript)[^>]*>.*?</\1>", " ", text)
     text = html.unescape(re.sub(r"(?s)<[^>]+>", " ", text))
     return " ".join(text.split())[:limit]
 
 
-def script_redirects(body: bytes) -> list[str]:
-    text = body[:500_000].decode("utf-8", errors="replace")
+def script_redirects(page: str | bytes) -> list[str]:
+    text = _text(page)[:500_000]
     found = LITERAL_REDIRECT_RE.findall(text)
     for name in VARIABLE_REDIRECT_RE.findall(text):
         found += re.findall(ASSIGNMENT_RE.format(name=re.escape(name)), text)
@@ -127,12 +133,13 @@ def fetch_url(start: str, profile: str, fallback_http: bool = False) -> Fetch:
                 url = urljoin(url, response.headers["location"])
                 continue
             body = response.content[:MAX_BODY]
+            text = decode_page(body, response.charset_encoding)
             result.status = response.status_code
-            result.title = _title(body)
+            result.title = _title(text)
             result.size = len(body)
             result.digest = hashlib.sha256(body).hexdigest()[:12]
-            result.script_redirects = script_redirects(body)
-            result.excerpt = visible_text(body)
+            result.script_redirects = script_redirects(text)
+            result.excerpt = visible_text(text)
             return result
     result.error = "too many redirects"
     return result
