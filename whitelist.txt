@@ -1,5 +1,5 @@
 # Zach's Lists - Default Whitelist
-# Last Updated: 23/09/2026 - Allowlisted ulm.ac.id (exact), hudong.com, rusfootball.info (build-check false positives)
+# Last Updated: 01/10/2026 - Allowlisted randomplanet.com (#132)
 
 # ============================================================================
 # GOOGLE SERVICES
@@ -1011,6 +1011,11 @@ hudong.com
 # Russian football news (fixtures, results, Russian Premier League), registered 2005. Listed by
 # oisd NSFW, probably for bookmaker ads; not adult content. (maintainer review, PR #129)
 rusfootball.info
+
+# randomplanet.com: Personal/professional site of Jason Buecker, an audio engineer and drummer in
+# Marietta, GA, distributing a notarized Apple silicon driver for the Zoom TAC-2 Thunderbolt audio
+# inter. VT 1/91 for randomplanet.com; registered 2010-01-16. (#132, PR #133)
+randomplanet.com
 
 # ============================================================================
 # REGEX PATTERNS
