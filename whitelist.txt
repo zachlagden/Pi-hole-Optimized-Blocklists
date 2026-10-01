@@ -1025,7 +1025,7 @@ bakery.example
 /^portal\.cakes\.example$/
 
 # pastry.example: Thanks for flagging this, an upstream feed had blocked the whole pastry.example
-# network. (#135)
+# network. (#135, PR #139)
 *.pastry.example
 
 # ============================================================================
