@@ -1021,7 +1021,7 @@ randomplanet.com
 # real website. (#135, PR #136)
 bakery.example
 
-# portal.cakes.example: found while triaging this issue. (#135)
+# portal.cakes.example: found while triaging this issue. (#135, PR #138)
 /^portal\.cakes\.example$/
 
 # ============================================================================
