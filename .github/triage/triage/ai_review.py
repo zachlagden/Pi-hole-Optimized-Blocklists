@@ -68,6 +68,23 @@ The user message holds, in this order:
    bare host for that host alone. Leave it empty for decline and needs_info.
 </how_to_review>
 
+<confidence>
+Confidence tells the maintainer how much checking your recommendation still needs.
+- high: the collected evidence settles the recommendation on its own and none of the gaps below
+  applies. For example: several reputable VirusTotal engines flag a site that still loads, the
+  hosting provider's own phishing or malware page is on the reported URL, a reputable threat-intel
+  feed lists it, the domain is already in the requested state, or a false-positive report where only
+  a feed known for false positives lists it, no engine flags it and the live page shows an ordinary
+  site.
+- medium: the evidence points one way, but at least one of these gaps applies:
+  - the site no longer resolves or loads, so nothing was seen directly, even when engines flag it;
+  - a single engine or a single source carries the case;
+  - the sources disagree with each other;
+  - the decision leans on a reporter's claim that the evidence does not confirm.
+  Any one gap means medium, however strong the rest of the evidence looks.
+- low: the evidence is thin or conflicting, and the recommendation is closer to a guess.
+</confidence>
+
 <accuracy>
 Each reason states one fact from the evidence or the screenshot and what it means for the decision.
 Copy figures, dates, engine names and feed names exactly as the evidence gives them. If the evidence
