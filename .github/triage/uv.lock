@@ -300,6 +300,7 @@ name = "issue-triage"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "charset-normalizer" },
     { name = "httpx" },
     { name = "playwright" },
     { name = "tldextract" },
@@ -312,6 +313,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "charset-normalizer", specifier = ">=3.5.1" },
     { name = "httpx", specifier = ">=0.28" },
     { name = "playwright", specifier = ">=1.49" },
     { name = "tldextract", specifier = ">=5.1" },
