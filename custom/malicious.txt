@@ -109,3 +109,7 @@ novugs.com
 # rcplanesales.com: A webshop claiming to sell RC planes, reportedly a fake store that takes credit
 # card details and never delivers. registered 2025-06-19. (#147, PR #159)
 ||rcplanesales.com^
+# modelbritannia.com: A WordPress/WooCommerce shop selling model railways, RC vehicles and hobby
+# accessories at heavy discounts (75–80% off listed prices), using real hobby brand names such as
+# Traxxas,. registered 2025-11-18. (#145)
+||modelbritannia.com^
