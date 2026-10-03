@@ -101,5 +101,5 @@ novugs.com
 # types and paths, so the live content cannot be checked. registered 2025-12-02. (#149, PR #150)
 ||campgearonsale.com^
 # unitedeveryday.com: An online shop selling kids' items, apparel, rosaries and decor, with deep
-# discounts on every listed product. registered 2025-12-26. (#146)
+# discounts on every listed product. registered 2025-12-26. (#146, PR #153)
 ||unitedeveryday.com^
