@@ -102,5 +102,5 @@ novugs.com
 ||campgearonsale.com^
 # induspartsdirect.com: An e-commerce shop selling industrial parts (solenoid valves, pipe fittings,
 # ball valves) with standard WooCommerce-style pages and large discount prices. registered
-# 2025-10-10. (#144)
+# 2025-10-10. (#144, PR #155)
 ||induspartsdirect.com^
