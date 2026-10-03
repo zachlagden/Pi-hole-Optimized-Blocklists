@@ -107,5 +107,5 @@ novugs.com
 # the page text is just an nginx 403. registered 2025-10-06. (#148, PR #157)
 ||luxeshoesshop.com^
 # rcplanesales.com: A webshop claiming to sell RC planes, reportedly a fake store that takes credit
-# card details and never delivers. registered 2025-06-19. (#147)
+# card details and never delivers. registered 2025-06-19. (#147, PR #159)
 ||rcplanesales.com^
