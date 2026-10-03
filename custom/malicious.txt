@@ -113,3 +113,7 @@ novugs.com
 # accessories at heavy discounts (75–80% off listed prices), using real hobby brand names such as
 # Traxxas,. registered 2025-11-18. (#145, PR #160)
 ||modelbritannia.com^
+# induspartsdirect.com: An e-commerce shop selling industrial parts (solenoid valves, pipe fittings,
+# ball valves) with standard WooCommerce-style pages and large discount prices. registered
+# 2025-10-10. (#144, PR #161)
+||induspartsdirect.com^
