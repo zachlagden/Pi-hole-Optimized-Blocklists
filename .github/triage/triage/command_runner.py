@@ -19,9 +19,10 @@ from triage.commands import (
 from triage.discord import Discord, plain_embed
 from triage.github_api import GitHub
 from triage.issue_form import IssueRequest, from_issue
-from triage.repo_ops import RepoOps
+from triage.repo_ops import MergeConflict, RepoOps
 from triage.state import TriageState, parse_state
 
+CHANGE_ATTEMPTS = 4
 TIMING_NOW = "A rebuild has started, so the change will be in the lists once that run finishes."
 TIMING_WEEKLY = "It takes effect at the next weekly rebuild (Sundays 00:00 UTC)."
 
@@ -122,7 +123,7 @@ def post_allow_replies(ops: RepoOps, command: Command, domains: list[str], state
     ops.comment(request.number, allow_reply.reporter_comment(request.author, command.message, context, actor.api_key))
 
 
-def change(ops: RepoOps, issue: dict, command: Command, domains: list[str], state: TriageState | None, category: str | None, service: str) -> Merged:
+def change_once(ops: RepoOps, issue: dict, command: Command, domains: list[str], state: TriageState | None, category: str | None, service: str) -> Merged:
     number = issue["number"]
     block = command.action == "block"
     category = command.category or category or "malicious"
@@ -142,11 +143,26 @@ def change(ops: RepoOps, issue: dict, command: Command, domains: list[str], stat
     sha = ops.write_file(path, branch, render(None), sha, title)
     pr, pr_url = ops.open_pr(title, branch, pr_body(command, domains, entries, path, state, number))
     ops.write_file(path, branch, render(pr), sha, f"docs: reference PR #{pr}")
-    ops.merge_pr(pr, title)
+    try:
+        ops.merge_pr(pr, title)
+    except MergeConflict:
+        ops.close_pr(pr)
+        ops.delete_branch(branch)
+        raise
     ops.delete_branch(branch)
     if command.now:
         ops.dispatch("update-blocklists.yml")
     return Merged(pr, pr_url, entries, TIMING_NOW if command.now else TIMING_WEEKLY)
+
+
+def change(ops: RepoOps, issue: dict, command: Command, domains: list[str], state: TriageState | None, category: str | None, service: str) -> Merged:
+    for attempt in range(CHANGE_ATTEMPTS):
+        try:
+            return change_once(ops, issue, command, domains, state, category, service)
+        except MergeConflict:
+            if attempt == CHANGE_ATTEMPTS - 1:
+                raise
+    raise AssertionError("unreachable")
 
 
 def pr_body(command: Command, domains: list[str], entries: list[str], path: str, state: TriageState | None, number: int) -> str:
