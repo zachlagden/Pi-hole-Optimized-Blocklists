@@ -98,5 +98,5 @@ novugs.com
 ||reviewfixand.com^
 ||securedenvironment.com^
 # luxeshoesshop.com: A shoes webshop at luxeshoesshop.com that currently returns HTTP 403 Forbidden;
-# the page text is just an nginx 403. registered 2025-10-06. (#148)
+# the page text is just an nginx 403. registered 2025-10-06. (#148, PR #151)
 ||luxeshoesshop.com^
