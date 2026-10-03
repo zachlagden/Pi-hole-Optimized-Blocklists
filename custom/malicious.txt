@@ -98,5 +98,5 @@ novugs.com
 ||reviewfixand.com^
 ||securedenvironment.com^
 # rcplanesales.com: A webshop claiming to sell RC planes, reportedly a fake store that takes credit
-# card details and never delivers. registered 2025-06-19. (#147)
+# card details and never delivers. registered 2025-06-19. (#147, PR #152)
 ||rcplanesales.com^
