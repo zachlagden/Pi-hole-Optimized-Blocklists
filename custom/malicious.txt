@@ -111,5 +111,5 @@ novugs.com
 ||rcplanesales.com^
 # modelbritannia.com: A WordPress/WooCommerce shop selling model railways, RC vehicles and hobby
 # accessories at heavy discounts (75–80% off listed prices), using real hobby brand names such as
-# Traxxas,. registered 2025-11-18. (#145)
+# Traxxas,. registered 2025-11-18. (#145, PR #160)
 ||modelbritannia.com^
