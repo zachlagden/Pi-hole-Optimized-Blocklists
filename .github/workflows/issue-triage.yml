@@ -158,7 +158,7 @@ jobs:
       && github.event.comment.author_association == 'OWNER'
       && startsWith(github.event.comment.body, '/')
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     permissions:
       contents: write
       pull-requests: write

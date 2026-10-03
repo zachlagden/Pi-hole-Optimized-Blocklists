@@ -91,7 +91,8 @@ def handle(github: GitHub, ops: RepoOps, issue: dict, command: Command, comment_
     problems = block_problems(domains, repo_root) if command.action == "block" else allow_problems(domains, repo_root, command.scope)
     if problems:
         return refuse(ops, number, comment_id, "Nothing changed:\n" + "\n".join(f"- {p}" for p in problems))
-    merged = change(ops, issue, command, domains, state, request.category, request.service)
+    with ops.lock():
+        merged = change(ops, issue, command, domains, state, request.category, request.service)
     if command.action == "block":
         closing = f"Blocked in #{merged.pr} ({', '.join(f'`{entry}`' for entry in merged.entries)}). {merged.timing}"
         ops.comment(number, f"{command.message}\n\n{closing}" if command.message else closing)
