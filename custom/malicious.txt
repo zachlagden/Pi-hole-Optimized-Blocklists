@@ -103,3 +103,6 @@ novugs.com
 # unitedeveryday.com: An online shop selling kids' items, apparel, rosaries and decor, with deep
 # discounts on every listed product. registered 2025-12-26. (#146, PR #153)
 ||unitedeveryday.com^
+# luxeshoesshop.com: A shoes webshop at luxeshoesshop.com that currently returns HTTP 403 Forbidden;
+# the page text is just an nginx 403. registered 2025-10-06. (#148)
+||luxeshoesshop.com^
