@@ -1,3 +1,5 @@
+from contextlib import nullcontext
+
 import pytest
 
 from triage import command_runner
@@ -42,6 +44,9 @@ class FakeOps:
 
     def delete_branch(self, name):
         self.deleted.append(name)
+
+    def lock(self):
+        return nullcontext()
 
     def dispatch(self, workflow, inputs=None):
         pass

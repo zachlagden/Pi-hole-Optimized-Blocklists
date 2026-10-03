@@ -1,5 +1,7 @@
 import base64
 import time
+from contextlib import contextmanager
+from datetime import UTC, datetime
 
 import httpx
 
@@ -7,9 +9,17 @@ from triage.github_api import GitHub
 
 MERGE_ATTEMPTS = 5
 MERGE_RETRY_SECONDS = 4
+LOCK_BRANCH = "triage-lock"
+LOCK_POLL_SECONDS = 5
+LOCK_WAIT_SECONDS = 480
+LOCK_STALE_SECONDS = 720
 
 
 class MergeConflict(Exception):
+    pass
+
+
+class LockTimeout(Exception):
     pass
 
 
@@ -59,6 +69,41 @@ class RepoOps:
 
     def close_pr(self, number: int) -> None:
         self._send("PATCH", f"/pulls/{number}", json={"state": "closed"})
+
+    def _lock_age_seconds(self) -> float | None:
+        response = self.client.get(f"{self.base}/git/ref/heads/{LOCK_BRANCH}")
+        if response.status_code == 404:
+            return None
+        response.raise_for_status()
+        commit = self._send("GET", f"/git/commits/{response.json()['object']['sha']}").json()
+        created = datetime.fromisoformat(commit["committer"]["date"])
+        return (datetime.now(UTC) - created).total_seconds()
+
+    def _try_lock(self) -> bool:
+        main = self._send("GET", f"/git/commits/{self.main_sha()}").json()
+        stamp = self._send("POST", "/git/commits", json={"message": "maintainer command lock", "tree": main["tree"]["sha"], "parents": [main["sha"]]}).json()
+        response = self.client.post(f"{self.base}/git/refs", json={"ref": f"refs/heads/{LOCK_BRANCH}", "sha": stamp["sha"]})
+        if response.status_code == 201:
+            return True
+        if response.status_code != 422:
+            response.raise_for_status()
+        return False
+
+    @contextmanager
+    def lock(self):
+        deadline = time.monotonic() + LOCK_WAIT_SECONDS
+        while not self._try_lock():
+            age = self._lock_age_seconds()
+            if age is not None and age > LOCK_STALE_SECONDS:
+                self.delete_branch(LOCK_BRANCH)
+                continue
+            if time.monotonic() > deadline:
+                raise LockTimeout("another maintainer command held the lock for too long")
+            time.sleep(LOCK_POLL_SECONDS)
+        try:
+            yield
+        finally:
+            self.delete_branch(LOCK_BRANCH)
 
     def comment(self, number: int, body: str) -> None:
         self._send("POST", f"/issues/{number}/comments", json={"body": body})

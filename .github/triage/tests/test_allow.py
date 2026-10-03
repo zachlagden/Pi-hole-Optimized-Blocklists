@@ -1,5 +1,6 @@
 import base64
 import json
+from contextlib import nullcontext
 from pathlib import Path
 
 import httpx
@@ -172,6 +173,9 @@ class FakeOps:
 
     def __getattr__(self, name: str):
         return lambda *args: self.calls.append((name, *args))
+
+    def lock(self):
+        return nullcontext()
 
     def read_file(self, path: str, ref: str) -> tuple[str, str]:
         return self.files[path], "sha"
