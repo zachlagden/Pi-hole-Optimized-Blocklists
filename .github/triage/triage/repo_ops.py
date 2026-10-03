@@ -9,6 +9,10 @@ MERGE_ATTEMPTS = 5
 MERGE_RETRY_SECONDS = 4
 
 
+class MergeConflict(Exception):
+    pass
+
+
 class RepoOps:
     def __init__(self, github: GitHub) -> None:
         self.client = github.client
@@ -47,9 +51,14 @@ class RepoOps:
             response = self.client.put(f"{self.base}/pulls/{number}/merge", json={"merge_method": "squash", "commit_title": f"{title} (#{number})"})
             if response.status_code == 200:
                 return
-            if attempt == MERGE_ATTEMPTS - 1 or response.status_code not in (405, 409):
+            if response.status_code not in (405, 409):
                 response.raise_for_status()
+            if attempt == MERGE_ATTEMPTS - 1:
+                raise MergeConflict(f"PR #{number} could not be merged: {response.status_code}")
             time.sleep(MERGE_RETRY_SECONDS)
+
+    def close_pr(self, number: int) -> None:
+        self._send("PATCH", f"/pulls/{number}", json={"state": "closed"})
 
     def comment(self, number: int, body: str) -> None:
         self._send("POST", f"/issues/{number}/comments", json={"body": body})
