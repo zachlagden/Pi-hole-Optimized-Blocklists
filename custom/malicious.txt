@@ -130,3 +130,10 @@ novugs.com
 ||heatingprohub.com^
 ||progressivevinyl.com^
 ||promrochain.com^
+# nl-gereedschapshop.com, soldout-poster.com, provincialhomelivings.com, rchobbykorting.com,
+# thermosfleskorting.com: found while triaging this issue. (#147)
+||nl-gereedschapshop.com^
+||soldout-poster.com^
+||provincialhomelivings.com^
+||rchobbykorting.com^
+||thermosfleskorting.com^
