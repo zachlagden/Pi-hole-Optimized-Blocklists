@@ -119,7 +119,7 @@ novugs.com
 ||induspartsdirect.com^
 # autoplexon.com, billetmotion.com, materielscene.com, central-digital.com, brightnestlighting.com,
 # outillagepro24.com, piecesmotoracing.com, heatingprohub.com, progressivevinyl.com,
-# promrochain.com: found while triaging this issue. (#144)
+# promrochain.com: found while triaging this issue. (#144, PR #162)
 ||autoplexon.com^
 ||billetmotion.com^
 ||materielscene.com^
