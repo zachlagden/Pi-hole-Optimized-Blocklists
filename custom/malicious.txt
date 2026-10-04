@@ -131,7 +131,7 @@ novugs.com
 ||progressivevinyl.com^
 ||promrochain.com^
 # nl-gereedschapshop.com, soldout-poster.com, provincialhomelivings.com, rchobbykorting.com,
-# thermosfleskorting.com: found while triaging this issue. (#147)
+# thermosfleskorting.com: found while triaging this issue. (#147, PR #163)
 ||nl-gereedschapshop.com^
 ||soldout-poster.com^
 ||provincialhomelivings.com^
