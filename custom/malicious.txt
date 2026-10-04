@@ -117,3 +117,16 @@ novugs.com
 # ball valves) with standard WooCommerce-style pages and large discount prices. registered
 # 2025-10-10. (#144, PR #161)
 ||induspartsdirect.com^
+# autoplexon.com, billetmotion.com, materielscene.com, central-digital.com, brightnestlighting.com,
+# outillagepro24.com, piecesmotoracing.com, heatingprohub.com, progressivevinyl.com,
+# promrochain.com: found while triaging this issue. (#144, PR #162)
+||autoplexon.com^
+||billetmotion.com^
+||materielscene.com^
+||central-digital.com^
+||brightnestlighting.com^
+||outillagepro24.com^
+||piecesmotoracing.com^
+||heatingprohub.com^
+||progressivevinyl.com^
+||promrochain.com^
