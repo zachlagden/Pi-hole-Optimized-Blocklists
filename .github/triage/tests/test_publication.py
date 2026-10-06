@@ -401,6 +401,19 @@ def test_non_main_or_moved_main_publication_never_confirms(build: tuple[Path, Pa
         publication.record_publication(lists, root, SHA)
 
 
+def test_main_moving_during_pending_scan_prevents_confirmation(build: tuple[Path, Path], monkeypatch: pytest.MonkeyPatch) -> None:
+    root, lists = build
+    for name in ("malicious.txt", "all_domains.txt"):
+        (lists / name).write_text("||example.com^\n")
+    record(root, lists)
+    github: Any = FakeGitHub(pending())
+    responses = iter([SHA, "b" * 40])
+    monkeypatch.setattr(github, "main_sha", lambda: next(responses))
+    result = publication.publish(github, lists, root)
+    assert not result.published and not github.edits
+    assert result.pending[0]["reason"] == "production main moved before confirmation"
+
+
 def test_missing_feed_check_cli_removes_stale_manifest(build: tuple[Path, Path]) -> None:
     root, lists = build
     record(root, lists)

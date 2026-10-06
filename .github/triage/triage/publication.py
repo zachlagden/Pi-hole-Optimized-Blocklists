@@ -304,6 +304,8 @@ def publish(github: GitHub, lists: Path, root: Path, dry_run: bool = False) -> P
     outputs = output_entries(lists, {domain for _, change in pending for domain in change.domains})
     for comment, change in pending:
         reason = verify_change(change, root, manifest, outputs, github.pull_request(change.pr))
+        if not reason and github.main_sha() != manifest["published_sha"]:
+            reason = "production main moved before confirmation"
         if reason:
             result.pending.append({"issue": change.issue, "pr": change.pr, "reason": reason})
             continue
