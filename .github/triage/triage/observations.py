@@ -1,10 +1,11 @@
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from typing import Literal
+from urllib.parse import urlsplit
 
 from triage.evidence import Evidence
 from triage.issue_form import NO_RESPONSE, parse_sections
-from triage.live import URL_RE
+from triage.live import URL_RE, content_outcome
 from triage.policy import MIN_REPUTABLE_VT_HITS, SHARED_PATH_HOSTS, THREAT_INTEL_SOURCES
 from triage.publication_safety import public_text, safe_data
 from triage.signals import provider_flags
@@ -20,6 +21,7 @@ class Observation:
     fact: str
     supports: tuple[str, ...] = ()
     image: bool = False
+    usable_target_content: bool = False
 
     def public_fact(self) -> str:
         return f"[{self.id}; {self.kind}; {public_text(self.source, 160)}] {public_text(self.fact)}"
@@ -31,6 +33,14 @@ def probe_name(profile: str) -> str:
     return f"{profile} HTTP probe"
 
 
+def _target_url(url: str, domain: str) -> bool:
+    try:
+        parts = urlsplit(url)
+        return parts.scheme in {"http", "https"} and parts.hostname == domain
+    except ValueError:
+        return False
+
+
 def collect(
     evidence: Evidence, today: date | None = None, image_ids: set[str] | None = None
 ) -> list[Observation]:
@@ -40,9 +50,9 @@ def collect(
 
     def add(
         identifier: str, kind: ObservationKind, source: str, fact: str,
-        supports: tuple[str, ...] = (), image: bool = False,
+        supports: tuple[str, ...] = (), image: bool = False, usable_target_content: bool = False,
     ) -> None:
-        observations.append(Observation(identifier, kind, source, fact, supports, image))
+        observations.append(Observation(identifier, kind, source, fact, supports, image, usable_target_content))
 
     add("target.host", "bot_measurement", "validated review target", evidence.domain)
     if evidence.domain in SHARED_PATH_HOSTS or evidence.domain == evidence.platform:
@@ -92,19 +102,30 @@ def collect(
         fact = f"HTTP {fetch.status}; final URL {fetch.final_url or 'unknown'}." if fetch.status is not None else (
             f"Probe failed: {fetch.error or 'unknown error'}; browser availability is not established."
         )
-        add(f"probe.{index}", "bot_measurement", source, fact)
+        usable = (
+            fetch.outcome in {"unknown", "rendered"}
+            and content_outcome(fetch.status, fetch.title + " " + fetch.excerpt, fetch.error) == "rendered"
+            and _target_url(fetch.final_url, evidence.domain)
+        )
+        add(f"probe.{index}", "bot_measurement", source, fact, usable_target_content=usable)
         if fetch.title or fetch.excerpt:
             add(f"probe.text.{index}", "website_text", source,
                 f"Page supplied title {fetch.title!r}; excerpt {fetch.excerpt!r}.")
     for index, flag in enumerate(provider_flags(evidence)):
-        add(f"provider.{index}", "bot_measurement", "HTTP page title matched provider warning", flag, ("block",))
+        add(f"provider.{index}", "website_text", "HTTP page title substring heuristic (website-controlled)", flag)
     capture = evidence.capture
     if capture:
         outcome = getattr(capture, "outcome", "") or ("failed" if capture.error else "captured")
         status = getattr(capture, "status", None)
+        usable = (
+            outcome == "rendered"
+            and content_outcome(status, capture.text, capture.error) == "rendered"
+            and _target_url(capture.final_url, evidence.domain)
+        )
         add("browser", "bot_measurement", "browser capture",
             f"Browser outcome: {outcome}; HTTP status {status if status is not None else 'unrecorded'}; "
-            f"final URL {capture.final_url or 'unknown'}; error {capture.error or 'none'}.")
+            f"final URL {capture.final_url or 'unknown'}; error {capture.error or 'none'}.",
+            usable_target_content=usable)
         if "browser.image" in image_ids:
             add("browser.image", "fetched_corroboration", f"browser screenshot at {capture.final_url}",
                 "A bounded browser screenshot was supplied to the review model; its interpretation is advisory.", image=True)
@@ -154,6 +175,7 @@ def collect(
 def model_text(observations: list[Observation]) -> str:
     return safe_data([
         {"id": observation.id, "kind": observation.kind, "source": observation.source[:300],
-         "fact": observation.fact[:6000], "image": observation.image}
+         "fact": observation.fact[:6000], "image": observation.image,
+         "usable_target_content": observation.usable_target_content}
         for observation in observations[:150]
     ])

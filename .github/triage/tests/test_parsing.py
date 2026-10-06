@@ -97,17 +97,20 @@ def test_old_age_gives_no_allow_credit_when_block_signals_exist():
     assert any("registered since" in s.text for s in collect(evidence, date(2026, 9, 23)))
 
 
-def test_provider_phishing_page_meets_the_bar():
+def test_provider_title_substring_does_not_meet_the_bar() -> None:
     from triage.evidence import Evidence
     from triage.issue_form import IssueRequest
     from triage.live import Fetch
-    from triage.signals import evidence_bar
-    request = IssueRequest(1, "block", "t", "a", "", "pub-x.r2.dev", "pub-x.r2.dev")
-    evidence = Evidence(request, "pub-x.r2.dev", "pub-x.r2.dev")
+    from triage.signals import NOTE, collect, evidence_bar
+    from datetime import date
+    request = IssueRequest(1, "block", "Acme report", "Alex", "", "example.com", "example.com")
+    evidence = Evidence(request, "example.com", "example.com")
     assert evidence_bar(evidence)[0] is False
-    evidence.quoted_fetches = [Fetch("desktop", chain=["https://pub-x.r2.dev/new.html"], status=403, title="Suspected Phishing  Cloudflare")]
+    evidence.quoted_fetches = [Fetch("desktop", chain=["https://example.com/page"], status=403, title="Suspected Phishing")]
     met, reason = evidence_bar(evidence)
-    assert met and "Cloudflare" in reason
+    assert not met and "not authenticated provider warnings" in reason
+    flag = next(signal for signal in collect(evidence, date(2031, 4, 11)) if "matched substring" in signal.text)
+    assert flag.lean == NOTE and "HTTP 403" in flag.text and "'Suspected Phishing'" in flag.text
 
 
 def test_script_redirects_follow_literals_and_variables():

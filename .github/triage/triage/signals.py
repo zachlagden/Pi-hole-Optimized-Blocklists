@@ -87,14 +87,17 @@ def provider_flags(evidence: Evidence) -> list[str]:
     flags = []
     for fetch in evidence.fetches + evidence.quoted_fetches:
         title = fetch.title.lower()
-        for marker, meaning in PROVIDER_PHISHING_TITLES.items():
+        for marker in PROVIDER_PHISHING_TITLES:
             if marker in title and fetch.chain:
-                flags.append(f"{fetch.chain[0]} returns {meaning}")
+                flags.append(
+                    f"HTTP {fetch.status} at {fetch.final_url}: page supplied title {fetch.title!r}; "
+                    f"matched substring {marker!r} (website-controlled heuristic, not an authenticated provider warning)"
+                )
     return sorted(set(flags))
 
 
 def _site_signals(evidence: Evidence) -> list[Signal]:
-    signals = [Signal(TOWARD_BLOCK, flag) for flag in provider_flags(evidence)]
+    signals = [Signal(NOTE, flag) for flag in provider_flags(evidence)]
     hops = sorted({url for fetch in evidence.fetches + evidence.quoted_fetches for url in fetch.script_redirects})
     if hops:
         signals.append(Signal(NOTE, "Page script redirects to " + ", ".join(hops[:3]) + ". Check those hosts too"))
@@ -143,7 +146,6 @@ def evidence_bar(evidence: Evidence) -> tuple[bool, str]:
     intel = [name for name in evidence.blocking_sources if name in THREAT_INTEL_SOURCES]
     if intel:
         reasons.append("listed by " + ", ".join(intel))
-    reasons += provider_flags(evidence)
     if reasons:
         return True, "; ".join(reasons)
-    return False, "no automated multi-engine, threat-intel or provider-warning corroboration; this is not a veto on a valid captured phishing-page visual assessment"
+    return False, "no automated multi-engine or threat-intel corroboration; website title substrings are not authenticated provider warnings; this is not a veto on a valid captured phishing-page visual assessment"

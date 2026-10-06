@@ -34,11 +34,11 @@ THREAT_INTEL_SOURCES = {
     "shadowwhisperer_scam",
 }
 
-PROVIDER_PHISHING_TITLES = {
-    "suspected phishing": "Cloudflare's suspected-phishing block page",
-    "deceptive site ahead": "Google Safe Browsing's deceptive-site warning",
-    "phishing site warning": "a host's phishing warning page",
-}
+PROVIDER_PHISHING_TITLES = (
+    "suspected phishing",
+    "deceptive site ahead",
+    "phishing site warning",
+)
 
 SHARED_PATH_HOSTS = {
     "storage.googleapis.com": "Google Cloud Storage",

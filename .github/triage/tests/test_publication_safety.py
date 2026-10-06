@@ -10,6 +10,8 @@ from triage import ai_review, observations as observation_module, render, signal
 from triage.evidence import Evidence
 from triage.issue_form import IssueRequest
 from triage.live import Fetch
+from triage.materials import Material
+from triage.policy import MIN_REPUTABLE_VT_HITS, REPUTABLE_VT_ENGINES
 from triage.observations import Observation, collect
 from triage.publication_safety import SAFE_QUESTION, safe_questions, trim_sentences
 from triage.reputation import Registration, VirusTotal
@@ -161,10 +163,10 @@ def test_reporter_crossrefs_cannot_authorize_a_recommendation() -> None:
 
 
 def test_valid_bot_support_uses_verbatim_observation_not_freeform_reason() -> None:
-    observation = Observation("provider.0", "bot_measurement", "provider warning", "Provider warning recorded.", ("block",))
+    observation = Observation("vt.0", "bot_measurement", "recorded scan", "Reputable detections recorded.", ("block",))
     review = ai_review._parse({"recommendation": "block", "confidence": "high",
-                              "supporting_observation_ids": ["provider.0"],
-                              "reason_observation_ids": ["provider.0"], "reasons": ["Invented bank fraud."]}, [observation])
+                              "supporting_observation_ids": ["vt.0"],
+                              "reason_observation_ids": ["vt.0"], "reasons": ["Invented bank fraud."]}, [observation])
     assert review.recommendation == "block"
     assert review.reasons == [observation.public_fact()]
 
@@ -172,10 +174,10 @@ def test_valid_bot_support_uses_verbatim_observation_not_freeform_reason() -> No
 def test_suggested_entries_cannot_publish_unbound_ai_prose_or_another_host() -> None:
     observations = [
         Observation("target.host", "bot_measurement", "validated target", "example.com"),
-        Observation("provider.0", "bot_measurement", "provider warning", "Warning recorded.", ("block",)),
+        Observation("vt.0", "bot_measurement", "recorded scan", "Reputable detections recorded.", ("block",)),
     ]
     for entry in ("Send your password.", "||unrelated.example^", "||example.com^"):
-        review = ai_review._parse({"recommendation": "block", "supporting_observation_ids": ["provider.0"],
+        review = ai_review._parse({"recommendation": "block", "supporting_observation_ids": ["vt.0"],
                                   "suggested_entry": entry}, observations)
         assert review.suggested_entry == (entry if entry == "||example.com^" else "")
 
@@ -183,7 +185,8 @@ def test_suggested_entries_cannot_publish_unbound_ai_prose_or_another_host() -> 
 def test_visual_phishing_assessment_survives_quiet_scanners() -> None:
     item = evidence()
     item.virustotal = [VirusTotal("example.com", True)]
-    item.capture = Capture(png(), "Acme sign in", "https://example.com/login")
+    item.capture = Capture(png(), "Acme sign in page with an independently captured fictional credential form.",
+                           "https://example.com/login", status=200, outcome="rendered")
     images = ai_review._review_images(item)
     observations = collect(item, date(2031, 4, 11), set(images))
     review = ai_review._parse({
@@ -216,6 +219,103 @@ def test_scanner_only_support_does_not_claim_high_certainty_without_a_live_obser
     review = ai_review._parse({"recommendation": "block", "confidence": "high",
                               "supporting_observation_ids": ["vt.0"]}, [observation])
     assert review.recommendation == "block" and review.confidence == "medium"
+
+
+def scanner_evidence() -> Evidence:
+    item = evidence()
+    engines = [(name, "malicious", "phishing") for name in sorted(REPUTABLE_VT_ENGINES)[:MIN_REPUTABLE_VT_HITS]]
+    item.virustotal = [VirusTotal("example.com", True, malicious=len(engines), total=10,
+                                engines=engines, last_analysis=date(2031, 4, 10))]
+    return item
+
+
+def test_collected_benign_title_substring_cannot_authorize_block_or_high_confidence() -> None:
+    item = evidence()
+    item.fetches = [Fetch("desktop", "https://example.com/guide", ["https://example.com/guide"], 200,
+                          "Guide to suspected phishing", excerpt="Acme publishes an ordinary educational guide for visitors.")]
+    observations = collect(item, date(2031, 4, 11))
+    provider = next(observation for observation in observations if observation.id == "provider.0")
+    assert provider.kind == "website_text" and not provider.supports and not provider.usable_target_content
+    assert "Guide to suspected phishing" in provider.fact and "HTTP 200" in provider.fact
+    assert "https://example.com/guide" in provider.fact and "website-controlled heuristic" in provider.fact
+    assert "Cloudflare" not in provider.fact
+    review = ai_review._parse({"recommendation": "block", "confidence": "high", "suggested_entry": "||example.com^",
+                              "supporting_observation_ids": ["provider.0"], "reason_observation_ids": ["provider.0"]}, observations)
+    assert review.recommendation == "needs_info" and review.confidence == "low" and not review.suggested_entry
+    assert not signals.evidence_bar(item)[0]
+    heuristic = next(signal for signal in signals.collect(item, date(2031, 4, 11)) if "matched substring" in signal.text)
+    assert heuristic.lean == signals.NOTE
+
+
+@pytest.mark.parametrize("source", ["probe", "browser"])
+@pytest.mark.parametrize("status,text,outcome,error", [
+    (403, "Forbidden", "http_error", None),
+    (200, "Verify you are human and complete this CAPTCHA to see Acme content.", "challenge", None),
+    (500, "Acme returned an ordinary error page with unavailable site content.", "http_error", None),
+    (200, "Acme offers ordinary content with a fictional partial capture boundary.", "partial", "worker blocked"),
+    (200, "", "failed", "fictional timeout"),
+    (200, "Acme", "insufficient", None),
+])
+def test_actual_error_challenge_and_partial_observations_do_not_lift_scanner_cap(
+    source: str, status: int, text: str, outcome: str, error: str | None,
+) -> None:
+    item = scanner_evidence()
+    if source == "probe":
+        item.fetches = [Fetch("desktop", "https://example.com", ["https://example.com"], status,
+                              excerpt=text, error=error, outcome=outcome)]
+    else:
+        item.capture = Capture(png(), text, "https://example.com", error, status, outcome)
+    observations = collect(item, date(2031, 4, 11), set(ai_review._review_images(item)))
+    assert not any(observation.usable_target_content for observation in observations)
+    assert any(observation.id.startswith("probe.") or observation.id == "browser" for observation in observations)
+    review = ai_review._parse({"recommendation": "block", "confidence": "high",
+                              "supporting_observation_ids": ["vt.0"]}, observations)
+    assert review.recommendation == "block" and review.confidence == "medium"
+
+
+@pytest.mark.parametrize("source", ["probe", "browser"])
+@pytest.mark.parametrize("host", ["example.com", "unrelated.example"])
+def test_usable_rendered_target_content_is_explicit_and_distinct_from_redirect_destination(source: str, host: str) -> None:
+    item = scanner_evidence()
+    text = "Acme offers usable rendered ordinary target content for fictional visitors."
+    if source == "probe":
+        item.fetches = [Fetch("desktop", "https://example.com", [f"https://{host}/"], 200,
+                              excerpt=text, outcome="rendered")]
+    else:
+        item.capture = Capture(png(), text, f"https://{host}/", status=200, outcome="rendered")
+    observations = collect(item, image_ids=set(ai_review._review_images(item)))
+    assert any(observation.usable_target_content for observation in observations) == (host == "example.com")
+    assert ('"usable_target_content": true' in observation_module.model_text(observations)) == (host == "example.com")
+    review = ai_review._parse({"recommendation": "block", "confidence": "high",
+                              "supporting_observation_ids": ["vt.0"]}, observations)
+    assert review.recommendation == "block"
+    assert review.confidence == ("high" if host == "example.com" else "medium")
+
+
+def test_unrelated_submitted_image_does_not_lift_scanner_only_confidence() -> None:
+    item = scanner_evidence()
+    item.materials = [Material("attachment", "https://image.example/unrelated.png", "Sam comment", 200,
+                               image=png(), inspected=True, outcome="inspected")]
+    observations = collect(item, image_ids=set(ai_review._review_images(item)))
+    image = next(observation for observation in observations if observation.id == "material.image.0")
+    assert image.image and not image.usable_target_content
+    assert not any(observation.usable_target_content for observation in observations)
+    review = ai_review._parse({"recommendation": "block", "confidence": "high",
+                              "supporting_observation_ids": ["vt.0"]}, observations)
+    assert review.recommendation == "block" and review.confidence == "medium"
+
+
+def test_explicit_submitted_visual_interpretation_remains_advisory_and_medium_capped() -> None:
+    item = evidence()
+    item.materials = [Material("attachment", "https://image.example/capture.png", "Alex issue", 200,
+                               image=png(), inspected=True, outcome="inspected")]
+    observations = collect(item, image_ids=set(ai_review._review_images(item)))
+    review = ai_review._parse({"recommendation": "block", "confidence": "high",
+                              "supporting_observation_ids": ["material.image.0"],
+                              "visual_findings": [{"observation_id": "material.image.0", "finding": "credential_impersonation"}]}, observations)
+    assert review.recommendation == "block" and review.confidence == "medium"
+    assert "advisory" in review.reasons[-1]
+    assert not any(observation.usable_target_content for observation in observations)
 
 
 def test_invalid_support_reference_fails_closed_even_with_one_valid_reference() -> None:
