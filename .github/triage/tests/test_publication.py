@@ -22,11 +22,24 @@ def build(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Path, Path]:
         path.parent.mkdir(exist_ok=True)
         path.write_text("# fictional configuration\n")
     (root / "custom/malicious.txt").write_text("||example.com^\n")
+    (root / "blocklists.conf").write_text("".join(
+        f"{publication.REPO_SOURCE_PREFIX}main/custom/{category}.txt|custom_{category}|{category}|abp\n"
+        for category in sorted(publication.CATEGORIES)
+    ))
+    (root / "committed-lfs").mkdir()
     for name in publication.OUTPUTS:
         (lists / name).write_text("unrelated.example\n")
         (root / "lists" / name).write_text("unrelated.example\n")
     monkeypatch.setattr(publication, "is_ancestor", lambda *args: True)
-    monkeypatch.setattr(publication, "git", lambda root, *args: SHA if args[0] == "rev-parse" else (root / args[1].split(":", 1)[1]).read_text())
+    def fake_git(root: Path, *args: str) -> str:
+        if args[0] == "rev-parse":
+            return SHA
+        path = args[1].split(":", 1)[1]
+        if path.startswith("lists/"):
+            return (root / "committed-lfs" / Path(path).name).read_text().strip()
+        return (root / path).read_text().strip()
+
+    monkeypatch.setattr(publication, "git", fake_git)
     monkeypatch.setattr(publication.subprocess, "check_output", lambda args, **kwargs: (root / args[-1].split(":", 1)[1]).read_bytes())
     return root, lists
 
@@ -34,7 +47,21 @@ def build(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Path, Path]:
 def record(root: Path, lists: Path, feed_check: dict | None = None) -> dict:
     for name in publication.OUTPUTS:
         (root / "lists" / name).write_bytes((lists / name).read_bytes())
-    return publication.record_manifest(lists, root, SHA, feed_check or {"successful": True, "held": False, "feed_problems": []})
+        (root / "committed-lfs" / name).write_text(
+            f"version https://git-lfs.github.com/spec/v1\noid sha256:{publication.digest(lists / name)}\nsize {(lists / name).stat().st_size}\n"
+        )
+    effective = root / "effective.conf"
+    effective.write_text(publication.pinned_config((root / "blocklists.conf").read_text(), SHA)[0])
+    base = root / "parsed"
+    for category in sorted(publication.CATEGORIES):
+        (base / category).mkdir(parents=True, exist_ok=True)
+        (base / category / f"custom_{category}.txt.raw").write_bytes((root / f"custom/{category}.txt").read_bytes())
+    check = feed_check or {"successful": True, "held": False, "feed_problems": []}
+    manifest = publication.record_manifest(lists, root, SHA, check, effective, base)
+    if check == {"successful": True, "held": False, "feed_problems": []}:
+        publication.record_publication(lists, root, SHA)
+        manifest = json.loads((lists / publication.MANIFEST).read_text())
+    return manifest
 
 
 def pending(action: str = "block", scope: str = "domain", category: str = "malicious") -> PendingChange:
@@ -47,6 +74,9 @@ class FakeGitHub:
         self.data = [{"id": 10, "user": BOT, "body": "Configuration merged. Publication pending.\n" + change.marker()}]
         self.edits: list[int] = []
         self.pr: dict = {"merged": True, "merge_commit_sha": SHA, "base": {"ref": "main"}}
+
+    def main_sha(self) -> str:
+        return SHA
 
     def pending_issues(self) -> list[dict]:
         return [{"number": 7}]
@@ -253,3 +283,128 @@ def test_manifest_provenance_and_unmerged_pr_refuse(build: tuple[Path, Path]) ->
     assert publication.verify_change(pending(), root, manifest, outputs, {"merged": False}) == "PR merge provenance does not match"
     (root / "custom/malicious.txt").write_text("different.example\n")
     assert publication.verify_change(pending(), root, manifest, outputs, {"merged": True, "merge_commit_sha": SHA, "base": {"ref": "main"}}) == "merged configuration is no longer present"
+
+
+def test_effective_config_pins_only_the_five_repository_inputs(build: tuple[Path, Path]) -> None:
+    root, _ = build
+    original = (root / "blocklists.conf").read_text() + "https://feed.example/list|Acme|malicious\n"
+    (root / "blocklists.conf").write_text(original)
+    target = root / "optimizer.conf"
+    publication.prepare_config(root, SHA, target)
+    effective = target.read_text()
+    assert (root / "blocklists.conf").read_text() == original
+    assert "https://feed.example/list|Acme|malicious" in effective
+    assert f"{publication.REPO_SOURCE_PREFIX}main/custom/" not in effective
+    assert effective.count(f"{publication.REPO_SOURCE_PREFIX}{SHA}/custom/") == 5
+    with pytest.raises(ValueError, match="overwrite"):
+        publication.prepare_config(root, SHA, root / "blocklists.conf")
+
+
+@pytest.mark.parametrize("fault", ["effective", "raw", "missing_raw"])
+def test_recording_requires_exact_effective_and_downloaded_custom_inputs(build: tuple[Path, Path], fault: str) -> None:
+    root, lists = build
+    record(root, lists)
+    effective = root / "effective.conf"
+    raw = root / "parsed/malicious/custom_malicious.txt.raw"
+    if fault == "effective":
+        effective.write_text((root / "blocklists.conf").read_text())
+    elif fault == "raw":
+        raw.write_text("||new.example^\n")
+    else:
+        raw.unlink()
+    with pytest.raises((ValueError, FileNotFoundError)):
+        publication.record_manifest(lists, root, SHA, {"successful": True, "held": False, "feed_problems": []}, effective, root / "parsed")
+    assert not (lists / publication.MANIFEST).exists()
+
+
+@pytest.mark.parametrize("field", ["effective_config_sha256", "custom_source_urls", "downloaded_custom_sha256", "published_sha", "published_ref"])
+def test_missing_provenance_never_confirms(build: tuple[Path, Path], field: str) -> None:
+    root, lists = build
+    manifest = record(root, lists)
+    del manifest[field]
+    (lists / publication.MANIFEST).write_text(json.dumps(manifest))
+    github: Any = FakeGitHub(pending())
+    with pytest.raises(ValueError):
+        publication.publish(github, lists, root)
+    assert not github.edits
+
+
+@pytest.mark.parametrize("fault", ["oid", "size", "uncommitted", "sha"])
+def test_successful_push_path_requires_committed_lfs_output(build: tuple[Path, Path], fault: str) -> None:
+    root, lists = build
+    record(root, lists)
+    pointer = root / "committed-lfs/tracking.txt"
+    if fault == "oid":
+        pointer.write_text(pointer.read_text().replace(publication.digest(lists / "tracking.txt"), "b" * 64))
+    elif fault == "size":
+        pointer.write_text(pointer.read_text().replace(f"size {(lists / 'tracking.txt').stat().st_size}", "size 1"))
+    elif fault == "uncommitted":
+        (lists / "tracking.txt").write_text("changed.example\n")
+        (root / "lists/tracking.txt").write_bytes((lists / "tracking.txt").read_bytes())
+        manifest = json.loads((lists / publication.MANIFEST).read_text())
+        manifest["output_sha256"]["tracking.txt"] = publication.digest(lists / "tracking.txt")
+        (lists / publication.MANIFEST).write_text(json.dumps(manifest))
+    with pytest.raises(ValueError):
+        publication.record_publication(lists, root, "b" * 40 if fault == "sha" else SHA)
+
+
+def test_main_moving_after_checkout_does_not_confirm_later_change(build: tuple[Path, Path], monkeypatch: pytest.MonkeyPatch) -> None:
+    root, lists = build
+    for name in ("malicious.txt", "all_domains.txt"):
+        (lists / name).write_text("||example.com^\n")
+    manifest = record(root, lists)
+    later_sha = "b" * 40
+    change = pending()
+    change.merge_sha = later_sha
+    github: Any = FakeGitHub(change)
+    github.pr["merge_commit_sha"] = later_sha
+    monkeypatch.setattr(publication, "is_ancestor", lambda root, ancestor, descendant: ancestor != later_sha)
+    result = publication.publish(github, lists, root)
+    assert not result.published and not github.edits
+    assert result.pending[0]["reason"] == "change was not in the optimizer checkout"
+    assert all(SHA in url and later_sha not in url for url in manifest["custom_source_urls"].values())
+
+
+def test_manifest_publication_is_local_only_and_requires_distinct_modes(build: tuple[Path, Path], monkeypatch: pytest.MonkeyPatch) -> None:
+    root, lists = build
+    record(root, lists)
+
+    def no_api() -> None:
+        pytest.fail("local manifest modes must not use the GitHub API")
+
+    monkeypatch.setattr(publication.GitHub, "from_env", no_api)
+    assert publication.main(["--lists", str(lists), "--repo-root", str(root), "--record-publication", "--published-sha", SHA]) == 0
+    assert publication.main(["--lists", str(lists), "--repo-root", str(root), "--prepare-config", "--config-sha", SHA, "--effective-config", str(root / "new.conf")]) == 0
+
+
+def test_non_main_or_moved_main_publication_never_confirms(build: tuple[Path, Path], monkeypatch: pytest.MonkeyPatch) -> None:
+    root, lists = build
+    for name in ("malicious.txt", "all_domains.txt"):
+        (lists / name).write_text("||example.com^\n")
+    manifest = record(root, lists)
+    github: Any = FakeGitHub(pending())
+    monkeypatch.setattr(github, "main_sha", lambda: "b" * 40)
+    with pytest.raises(ValueError, match="main moved"):
+        publication.publish(github, lists, root)
+    assert not github.edits
+    manifest["published_ref"] = "refs/heads/feature"
+    (lists / publication.MANIFEST).write_text(json.dumps(manifest))
+    with pytest.raises(ValueError, match="production-main"):
+        publication.validate_manifest(lists, root)
+    tracked_git = publication.git
+
+    def wrong_main(root: Path, *args: str) -> str:
+        return "b" * 40 if args == ("rev-parse", "refs/remotes/origin/main") else tracked_git(root, *args)
+
+    monkeypatch.setattr(publication, "git", wrong_main)
+    with pytest.raises(ValueError, match="production main ref"):
+        publication.record_publication(lists, root, SHA)
+
+
+def test_missing_feed_check_cli_removes_stale_manifest(build: tuple[Path, Path]) -> None:
+    root, lists = build
+    record(root, lists)
+    assert publication.main(["--lists", str(lists), "--repo-root", str(root), "--record-manifest", "--config-sha", SHA,
+                             "--base", str(root / "parsed"), "--effective-config", str(root / "effective.conf"),
+                             "--feed-check", str(root / "missing.json")]) == 1
+    assert not (lists / publication.MANIFEST).exists()

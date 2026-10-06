@@ -85,9 +85,9 @@ def test_insert_allow_block_goes_at_the_end_of_the_reported_section_and_bumps_th
 
 
 def test_file_note_uses_message_then_site_and_evidence() -> None:
-    state = TriageState(domain="bad.example", site="Fake Acme login page", evidence="Fictional evidence for bad.example")
+    state = TriageState(domain="bad.example", site="AI visual assessment: possible Acme impersonation, advisory", evidence="Fictional evidence for bad.example", site_observation_bound=True)
     note = file_note(Command("block"), ["bad.example"], state, 9, 10)
-    assert note == "bad.example: Fake Acme login page. Fictional evidence for bad.example. (#9, PR #10)"
+    assert note == "bad.example: AI visual assessment: possible Acme impersonation, advisory. Fictional evidence for bad.example. (#9, PR #10)"
     note = file_note(Command("block", message="Confirmed kit host."), ["bad.example"], state, 9, None)
     assert note == "bad.example: Confirmed kit host. Fictional evidence for bad.example. (#9)"
     assert file_note(Command("block"), ["other.example"], state, 9, 10) == "other.example: found while triaging this issue. (#9, PR #10)"

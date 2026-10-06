@@ -101,6 +101,9 @@ class GitHub:
     def pull_request(self, number: int) -> dict:
         return self._get(f"/repos/{self.repository}/pulls/{number}")
 
+    def main_sha(self) -> str:
+        return str(self._get(f"/repos/{self.repository}/git/ref/heads/main")["object"]["sha"])
+
     def pending_issues(self) -> list[dict]:
         found: list[dict] = []
         for page in range(1, 11):

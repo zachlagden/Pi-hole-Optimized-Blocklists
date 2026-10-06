@@ -180,7 +180,7 @@ def file_note(command: Command, domains: list[str], state: TriageState | None, n
     reported = bool(state and state.domain in domains)
     reason = command.message.split("\n\n")[0].strip() if command.message else ""
     if not reason:
-        reason = state.site if reported and state and state.site else "found while triaging this issue"
+        reason = state.site if reported and state and state.site and state.site_observation_bound else "found while triaging this issue"
     evidence = state.evidence if reported and state and state.evidence else ""
     source = f"(#{number}, PR #{pr})" if pr else f"(#{number})"
     parts = [f"{', '.join(domains)}: {reason}".rstrip(": "), evidence, source]

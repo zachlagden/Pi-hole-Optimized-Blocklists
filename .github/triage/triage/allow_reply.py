@@ -1,5 +1,6 @@
 from triage import ai_review
 from triage.issue_form import IssueRequest
+from triage.publication_safety import deterministic_reporter_reply
 from triage.state import TriageState
 
 WHAT_CHANGED = (
@@ -41,9 +42,6 @@ def reply_context(domains: list[str], entries: list[str], scope: str, pr: int, t
     }
     if reported and state:
         context |= {
-            "site_description": state.site,
-            "evidence_summary": state.evidence,
-            "last_ai_suggestion": state.recommendation,
             "upstream_feeds_that_blocked_it": state.listed_by,
         }
     context["reporter"] = {
@@ -56,18 +54,11 @@ def reply_context(domains: list[str], entries: list[str], scope: str, pr: int, t
 
 
 def fallback_reply(context: dict) -> str:
-    listed = ", ".join(f"`{domain}`" for domain in context["domains"])
-    verb = "are" if len(context["domains"]) > 1 else "is"
-    return (
-        f"Thanks for the report. The allowlist configuration for {listed} {verb} merged in {context['pull_request']}. "
-        f"{context['timing_sentence']} If you run a Pi-hole yourself, you can allow it there in the meantime."
-    )
+    return deterministic_reporter_reply(context)
 
 
 def reporter_comment(login: str, owner_text: str, context: dict, api_key: str | None) -> str:
-    text = owner_text.strip()
-    if not text and api_key:
-        text = ai_review.reporter_reply(context, api_key)
+    text = owner_text.strip() or ai_review.reporter_reply(context, api_key or "")
     if not text:
-        text = fallback_reply(context)
+        raise ValueError("invalid verified reporter-reply context")
     return mention(login, text)

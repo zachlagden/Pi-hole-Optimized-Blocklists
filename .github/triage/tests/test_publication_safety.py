@@ -261,10 +261,11 @@ def test_invalid_oversize_and_excess_images_fail_closed() -> None:
 def test_browser_output_distinguishes_403_and_google_referer_probe() -> None:
     item = evidence()
     item.fetches = [Fetch("google referral", "https://example.com", ["https://example.com"], 403)]
-    item.capture = Capture(png(), "Acme page", "https://example.com/login")
+    item.capture = Capture(png(), "Acme page", "https://example.com/login", status=200, outcome="rendered")
     lines = "\n".join(render.live_lines(item))
     assert "HTTP 403" in lines and "not a crawler" in lines
-    assert "Browser capture: captured" in lines
+    assert "insufficient usable HTTP probes" in lines
+    assert "Browser capture: rendered, HTTP 200" in lines
     assert "independently" in lines and "offline" not in lines
     assert "all visitor types got the same site" not in lines
 

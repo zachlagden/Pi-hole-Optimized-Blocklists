@@ -124,7 +124,10 @@ def collect(
     inspected: set[str] = {fetch.start for fetch in evidence.fetches + evidence.quoted_fetches if fetch.status is not None}
     for index, material in enumerate(getattr(evidence, "materials", ())):
         url = str(getattr(material, "url", ""))
-        status = str(getattr(material, "status", "uninspected"))
+        status = str(getattr(material, "status", "unrecorded"))
+        outcome = str(getattr(material, "outcome", "unknown"))
+        note = str(getattr(material, "note", "Source claims remain unverified."))
+        error = str(getattr(material, "error", "") or "")
         source = str(getattr(material, "source", "submitted material"))
         text = str(getattr(material, "text", "") or "")
         image_id = f"material.image.{index}"
@@ -132,8 +135,9 @@ def collect(
         if image or text:
             inspected.add(url)
         add(f"material.{index}", "bot_measurement", source,
-            f"Submitted {getattr(material, 'kind', 'link')} {url}: status {status}; "
-            f"{'content supplied to model' if image or text else 'uninspected content'}.")
+            f"Submitted {getattr(material, 'kind', 'link')} {url}: outcome {outcome}; status {status}; "
+            f"{'content supplied to model' if image or text else 'uninspected content'}. {note} "
+            f"Collection limitation: {error or 'none'}.")
         if text:
             add(f"material.text.{index}", "fetched_corroboration", f"{source}: {url}", f"Fetched source supplied: {text}")
         if image:

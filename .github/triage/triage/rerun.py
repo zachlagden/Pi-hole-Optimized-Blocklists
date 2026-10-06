@@ -93,6 +93,8 @@ def check(issue: dict[str, object], request: IssueRequest, thread: list[ThreadCo
 
 def next_state(request: IssueRequest, previous: TriageState | None, review: ai_review.Review | None, trigger: str, fetched: list[str], evidence: Evidence | None = None) -> TriageState:
     today = datetime.now(UTC).date().isoformat()
+    validated = ai_review.for_publication(review) if review and not review.error else None
+    site_bound = bool(validated and set(validated.site_observation_ids) & {observation.id for observation in validated.observations})
     recommendation = review.recommendation if review and not review.error else "no AI view"
     confidence = review.confidence if review and not review.error else ""
     verdict = f"{recommendation.replace('_', ' ')} ({confidence})" if confidence else recommendation.replace("_", " ")
@@ -110,7 +112,8 @@ def next_state(request: IssueRequest, previous: TriageState | None, review: ai_r
         recommendation=recommendation if review and not review.error else (previous.recommendation if previous else ""),
         confidence=confidence,
         questions=review.questions if review and not review.error else [],
-        site=render.first_sentence(review.site) if review and not review.error else "",
+        site=render.first_sentence(validated.site) if site_bound and validated else "",
+        site_observation_bound=site_bound,
         evidence=render.evidence_note(evidence) if evidence else "",
         vt_reputable=max((len(vt.reputable_hits) for vt in evidence.virustotal), default=0) if evidence else (previous.vt_reputable if previous else 0),
         listed_by=evidence.blocking_sources if evidence else (list(previous.listed_by) if previous else []),

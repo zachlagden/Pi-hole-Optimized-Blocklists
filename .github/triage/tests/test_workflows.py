@@ -16,6 +16,7 @@ CACHE_PREFIX = "triage-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.gi
 PUBLICATION_GATE = (
     "steps.buildcheck.outcome == 'success' "
     "&& steps.buildcheck.outputs.run == 'false' "
+    "&& steps.manifest.outcome == 'success' "
     "&& (steps.publish.outcome == 'success' || steps.no_changes.outcome == 'success')"
 )
 
@@ -124,8 +125,9 @@ def test_offline_ci_runs_frozen_tests_for_prs_and_main_pushes() -> None:
 
 def test_held_build_never_mutates_or_publishes_lists() -> None:
     content = workflow("update-blocklists.yml")
-    assert content["permissions"] == {"contents": "read", "issues": "write"}
+    assert content["permissions"] == {"contents": "read", "issues": "write", "pull-requests": "read"}
     job = content["jobs"]["update-blocklists"]
+    assert job["if"] == "github.ref == 'refs/heads/main'"
     assert named_step(job, "Check feeds and new blocks")["continue-on-error"] == "true"
     for name in ("Extract statistics", "Update README", "Check for changes", "Configure Git"):
         assert named_step(job, name)["if"] == "steps.buildcheck.outputs.run != 'true'"
@@ -140,6 +142,8 @@ def test_held_build_never_mutates_or_publishes_lists() -> None:
     assert checkout["with"]["token"] == "${{ secrets.GH_PAT }}"
     assert checkout["with"]["lfs"] == "true"
     assert "git push" in publish["run"]
+    assert "fetch-depth" in checkout["with"] and checkout["with"]["fetch-depth"] == "0"
+    assert "cmp" in unchanged["run"] and "nsfw_abp" in unchanged["run"]
 
 
 def test_publication_requires_successful_unheld_check_and_publish_path() -> None:
@@ -152,12 +156,30 @@ def test_publication_requires_successful_unheld_check_and_publish_path() -> None
     assert '--lists "$REPO_ROOT/pihole_blocklists_prod" --repo-root "$REPO_ROOT"' in publication["run"]
     assert job["steps"].index(named_step(job, "Commit and push")) < job["steps"].index(publication)
     assert job["steps"].index(named_step(job, "No changes")) < job["steps"].index(publication)
+    assert "--record-publication" in publication["run"] and "--published-sha" in publication["run"]
+    assert publication["run"].index("--record-publication") < publication["run"].rindex("python -m triage.publication")
     failure = named_step(job, "Report publication verification failure")
-    assert failure["if"] == "steps.publication.outcome == 'failure'"
+    assert failure["if"] == "steps.publication.outcome == 'failure' || steps.manifest.outcome == 'failure'"
     assert failure["continue-on-error"] == "true"
     assert "$GITHUB_STEP_SUMMARY" in failure["run"]
     assert "::warning::" in failure["run"] and "did not fail" in failure["run"]
     assert "curl -fsS" in failure["run"]
+
+
+def test_manifest_uses_actual_checks_and_pinned_pre_optimizer_inputs() -> None:
+    job = workflow("update-blocklists.yml")["jobs"]["update-blocklists"]
+    optimizer = named_step(job, "Run optimizer")
+    check = named_step(job, "Check feeds and new blocks")
+    manifest = named_step(job, "Record optimizer publication manifest")
+    assert optimizer["run"].index("git rev-parse HEAD") < optimizer["run"].index("--prepare-config")
+    assert optimizer["run"].index("--prepare-config") < optimizer["run"].index("./pihole-optimizer")
+    assert '--config "$RUNNER_TEMP/triage-optimizer.conf"' in optimizer["run"]
+    assert '--feed-check "$RUNNER_TEMP/triage-feed-check.json"' in check["run"]
+    assert manifest["env"]["OPTIMIZER_CONFIG_SHA"] == "${{ steps.optimizer.outputs.config_sha }}"
+    assert "--record-manifest" in manifest["run"] and "--effective-config" in manifest["run"] and "--base" in manifest["run"]
+    assert manifest["if"] == "steps.buildcheck.outcome == 'success' && steps.buildcheck.outputs.run == 'false'"
+    assert job["steps"].index(check) < job["steps"].index(manifest) < job["steps"].index(named_step(job, "Commit and push"))
+    assert "triage-publication.json" not in named_step(job, "Commit and push")["run"]
 
 
 def test_retired_source_is_not_replaced() -> None:

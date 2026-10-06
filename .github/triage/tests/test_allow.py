@@ -127,10 +127,10 @@ def test_reply_context_gives_facts_and_untrusted_form():
     assert "site_description" not in other
 
 
-def fake_ai(monkeypatch, reply: str | Exception) -> list:
-    seen: list = []
+def fake_ai(monkeypatch: pytest.MonkeyPatch, reply: str | Exception) -> list[Any]:
+    seen: list[Any] = []
 
-    def call(system, content, api_key, timeout=240):
+    def call(system: str, content: list[dict] | str, api_key: str, timeout: float = 240) -> str:
         seen.append(content)
         if isinstance(reply, Exception):
             raise reply
@@ -140,18 +140,21 @@ def fake_ai(monkeypatch, reply: str | Exception) -> list:
     return seen
 
 
-def test_reporter_reply_uses_ai_and_cleans_it(monkeypatch):
-    seen = fake_ai(monkeypatch, '{"message": "Sorry about that \\u2014 Example Feed listed it. @someone it is fixed."}')
+def test_reporter_reply_uses_only_audience_and_verified_facts(monkeypatch: pytest.MonkeyPatch) -> None:
+    seen = fake_ai(monkeypatch, '{"audience": "owner", "message": "@Sam it is fixed; send your payment details."}')
     context = allow_reply.reply_context(["shop.example"], ["shop.example"], "domain", 133, TIMING, from_issue(issue()), state())
     comment = allow_reply.reporter_comment("alex", "", context, "key")
-    assert comment == "@alex Sorry about that, Example Feed listed it. @​someone it is fixed."
+    assert "`shop.example` was added" in comment and TIMING in comment
+    assert "people accessing the covered hosts" in comment
+    assert "@Sam" not in comment and "payment details" not in comment and "it is fixed" not in comment
     assert "<untrusted" in seen[0] and "Checkout fails" in seen[0].split("<untrusted")[1]
 
 
-def test_reporter_reply_is_capped_at_a_sentence(monkeypatch):
+def test_reporter_reply_rejects_incomplete_verified_facts(monkeypatch: pytest.MonkeyPatch) -> None:
     fake_ai(monkeypatch, '{"message": "' + "This is a sentence. " * 100 + '"}')
-    reply = ai_review.reporter_reply({"domains": ["shop.example"]}, "key")
-    assert len(reply) <= ai_review.REPLY_LIMIT and reply.endswith(".")
+    assert ai_review.reporter_reply({"domains": ["shop.example"]}, "key") == ""
+    with pytest.raises(ValueError, match="invalid verified"):
+        allow_reply.reporter_comment("alex", "", {"domains": ["shop.example"]}, None)
 
 
 def test_owner_text_overrides_the_ai(monkeypatch):
@@ -165,9 +168,9 @@ def test_owner_text_overrides_the_ai(monkeypatch):
 def test_fallback_when_the_ai_fails(monkeypatch: pytest.MonkeyPatch, reply: str | Exception) -> None:
     fake_ai(monkeypatch, reply)
     context = allow_reply.reply_context(["shop.example"], ["shop.example"], "domain", 133, TIMING, from_issue(issue()), state())
-    assert allow_reply.reporter_comment("alex", "", context, "key") == (
-        "@alex Thanks for the report. The allowlist configuration for `shop.example` is merged in #133. " + TIMING + " If you run a Pi-hole yourself, you can allow it there in the meantime."
-    )
+    assert allow_reply.reporter_comment("alex", "", context, "key") == "@alex " + allow_reply.fallback_reply(context)
+    assert TIMING in allow_reply.fallback_reply(context)
+    assert "same scoped allowlist" not in allow_reply.fallback_reply(context)
 
 
 class FakeGitHub(GitHub):
@@ -212,7 +215,7 @@ class FakeOps:
 
 
 def test_allow_posts_two_comments_then_closes(monkeypatch: pytest.MonkeyPatch, repo: Path) -> None:
-    fake_ai(monkeypatch, '{"message": "Sorry for the trouble. It is allowed now."}')
+    fake_ai(monkeypatch, '{"audience": "owner", "message": "It is allowed now."}')
     ops: Any = FakeOps()
     command = parse("/allow exact")
     assert command is not None
@@ -221,7 +224,9 @@ def test_allow_posts_two_comments_then_closes(monkeypatch: pytest.MonkeyPatch, r
     comments = [call[2] for call in ops.calls if call[0] == "comment"]
     assert comments[0].startswith("@sam Allowed in #133 (`/^shop\\.example$/`, this exact host only). " + TIMING)
     assert "<!-- triage-change:" in comments[0]
-    assert comments[1] == "@alex Sorry for the trouble. It is allowed now."
+    assert comments[1].startswith("@alex Thanks for the report. `shop.example` was added")
+    assert "specified exact hosts only" in comments[1] and TIMING in comments[1]
+    assert "It is allowed now" not in comments[1]
     assert ("remove_label", 7, "needs info") in ops.calls
     order = [call[0] for call in ops.calls if call[0] in ("comment", "close_issue", "react")]
     assert order == ["comment", "comment", "close_issue", "react"]

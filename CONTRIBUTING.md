@@ -30,7 +30,11 @@ Use the **Bug Report** template with as much detail as possible. Steps to reprod
 
 ## What happens after you open an issue
 
-A bot posts an evidence report on block and false-positive issues: where the domain is listed, scanner results and a check of the live site. It also sets labels, including an impact label. The maintainer reads the report and makes every decision.
+A bot posts an evidence report on block and false-positive issues: repository/upstream coverage, dated scanner/registration results, HTTP probes and a separate browser capture where available. It can inspect directly referenced GitHub image attachments, public HTML/plain-text sources and same-repository issues within bounded limits. Mentioned, inspected and unavailable materials are distinguished; fetched source claims and related issues are not proof of wrongdoing. A 403, challenge or failed probe does not mean a site is offline.
+
+The AI view is advisory. Public factual reasons refer to identified observations; bounded screenshots can support explicitly advisory visual interpretations, not prove authenticity. Unsupported recommendations ask for more information rather than suggesting a block. The bot may set type, impact and `needs info` labels, but never changes a list, declines or closes an issue by itself. Only the repository owner's commands can merge domain changes.
+
+Please share only minimal, redacted evidence you have already observed. Remove personal/confidential information from screenshots and descriptions. Do not make a purchase, enter sensitive information or share private credentials/payment details to gather evidence. Directly referenced material may appear in public reports and be sent to the advisory review service, so do not submit confidential content.
 
 ## How It Works
 
@@ -41,7 +45,11 @@ A bot posts an evidence report on block and false-positive issues: where the dom
 - The optimizer binary runs weekly, downloads all sources (including the custom lists via raw GitHub URL), and produces the deduplicated output in `lists/`
 - `lists/*.txt` are generated files tracked with Git LFS — **do not edit these directly**
 
-When your PR is merged, the domain change takes effect on the next weekly optimizer run (Sunday midnight UTC), or when a maintainer manually triggers the workflow.
+Merging a PR changes the configuration, not the published lists immediately. Publication waits for a successful optimizer rebuild that consumes the merged configuration (normally Sunday midnight UTC, or a maintainer-triggered run selecting `main`). A queued rebuild is not a publication confirmation, and a held build keeps the previous lists. The production publishing job is main-only; branch/PR checks use the offline CI.
+
+Owner-command changes are tracked as pending publication. After a healthy unheld build publishes or verifies unchanged outputs, the bot checks commit/input provenance and actual output coverage, then updates the original change comment once. Missing/failed feeds, mismatched outputs or incomplete requested scope leave the change pending. Broad rules flattened to a root host cannot be confirmed as covering all subdomains. NSFW descendant coverage is verified in the ABP-format list separately from the host-format list. Your Pi-hole must still refresh its lists after publication.
+
+The owner can use `/block [category] [exact] [now] [domain ...]` and `/allow [exact | subdomains] [now] [domain ...]`. Block scope defaults to the host and descendants; `exact` blocks only the host. Allow scope defaults to the domain and descendants; `exact` allows only the host, while `subdomains` excludes the bare domain. Explicit domains can be supplied on closed issues. Commands normalize/deduplicate batches, skip entries already covered in the requested scope and refuse unsafe targets or whitelist conflicts without partially applying a conflicting batch. A `now` request only attempts to queue an immediate rebuild. Reporter replies use the owner's supplied wording or a scope-correct fixed template with pending-publication timing, never arbitrary model-written text.
 
 ## Manual Contributions
 
@@ -76,6 +84,18 @@ If you want to contribute directly rather than through an issue:
 - Fill in the PR template
 - Reference the related issue where applicable (`Closes #123`)
 - The maintainer will review your PR for domain validity, correct formatting, and duplicates
+
+## Offline triage tests
+
+Changes to triage automation are checked on PRs and main pushes with Python 3.12 and frozen dependencies. To run the same suite locally:
+
+```sh
+cd .github/triage
+uv sync --frozen
+uv run --frozen python -m pytest -q
+```
+
+Tests use bundled public-suffix data and explicit fakes. Real HTTP, DNS, socket and browser calls fail rather than silently becoming empty evidence. Normal issue jobs restore data/browser caches only; a separate main-only workflow warms and saves compatible daily caches.
 
 ## Licence
 

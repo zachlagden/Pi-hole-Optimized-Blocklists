@@ -72,14 +72,14 @@ def test_shared_platform_hosts_are_their_own_site() -> None:
     assert self_and_parents("x.example.github.io") == ["x.example.github.io", "example.github.io"]
 
 
-def test_quoted_urls_keep_paths_on_the_reported_host():
+def test_quoted_urls_keep_paths_on_the_reported_host() -> None:
     from triage.live import quoted_urls
     text = (
-        "lands on https://fatlantmxppress.us.cc/2b6848c72a3e, then "
-        "blob:https://pub-abc.r2.dev/daaab2f0 and https://t.co/nlVIYkWx9I plus https://fatlantmxppress.us.cc/"
+        "lands on https://shop.example/checkout, then "
+        "blob:https://image.example/capture and https://link.example/short plus https://shop.example/"
     )
-    assert quoted_urls(text, "fatlantmxppress.us.cc") == ["https://fatlantmxppress.us.cc/2b6848c72a3e"]
-    assert quoted_urls(text, "pub-abc.r2.dev") == ["https://pub-abc.r2.dev/daaab2f0"]
+    assert quoted_urls(text, "shop.example") == ["https://shop.example/checkout"]
+    assert quoted_urls(text, "image.example") == []
     assert quoted_urls(text, "example.com") == []
 
 

@@ -12,6 +12,7 @@ from typing import Any
 from triage.commands import CATEGORIES, allow_entries_for, entries_for, normalized_domains
 from triage.github_api import GitHub, is_bot_comment
 from triage.listparse import Entry, entry_blocks, extract_entry
+from triage.sources import REPO_SOURCE_PREFIX
 
 MARKER_RE = re.compile(r"<!-- triage-change:([A-Za-z0-9+/=]+) -->")
 MANIFEST = "triage-publication.json"
@@ -86,7 +87,33 @@ def is_ancestor(root: Path, ancestor: str, descendant: str) -> bool:
     return subprocess.run(["git", "-C", str(root), "merge-base", "--is-ancestor", ancestor, descendant], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
 
 
-def record_manifest(lists: Path, root: Path, config_sha: str, feed_check: dict) -> dict:
+def pinned_config(original: str, config_sha: str) -> tuple[str, dict[str, str]]:
+    if not re.fullmatch(r"[0-9a-f]{40}", config_sha):
+        raise ValueError("invalid build configuration SHA")
+    urls = {f"custom/{category}.txt": f"{REPO_SOURCE_PREFIX}{config_sha}/custom/{category}.txt" for category in sorted(CATEGORIES)}
+    effective = original
+    for path, pinned in urls.items():
+        category = Path(path).stem
+        current = f"{REPO_SOURCE_PREFIX}main/{path}|custom_{category}|{category}|abp"
+        lines = [line for line in original.splitlines() if line.strip() == current]
+        if len(lines) != 1 or original.count(f"{REPO_SOURCE_PREFIX}main/{path}") != 1:
+            raise ValueError("missing or ambiguous repository custom source")
+        effective = effective.replace(current, pinned + f"|custom_{category}|{category}|abp")
+    return effective, urls
+
+
+def prepare_config(root: Path, config_sha: str, target: Path) -> None:
+    if target.resolve() in {(root / path).resolve() for path in CONFIG}:
+        raise ValueError("effective config must not overwrite tracked configuration")
+    original = (root / "blocklists.conf").read_text()
+    if git(root, "show", f"{config_sha}:blocklists.conf") != original.strip():
+        raise ValueError("configuration does not match captured checkout")
+    effective, _ = pinned_config(original, config_sha)
+    target.write_text(effective)
+
+
+def record_manifest(lists: Path, root: Path, config_sha: str, feed_check: dict, effective_config: Path, base: Path) -> dict:
+    (lists / MANIFEST).unlink(missing_ok=True)
     if not re.fullmatch(r"[0-9a-f]{40}", config_sha):
         raise ValueError("invalid build configuration SHA")
     if set(feed_check) != {"successful", "held", "feed_problems"} or type(feed_check["successful"]) is not bool or type(feed_check["held"]) is not bool or not isinstance(feed_check["feed_problems"], list):
@@ -96,15 +123,24 @@ def record_manifest(lists: Path, root: Path, config_sha: str, feed_check: dict) 
         committed = subprocess.check_output(["git", "-C", str(root), "show", f"{config_sha}:{path}"], stderr=subprocess.DEVNULL)
         if hashlib.sha256(committed).hexdigest() != configs[path]:
             raise ValueError("configuration changed after optimizer checkout")
+    expected_config, custom_urls = pinned_config((root / "blocklists.conf").read_text(), config_sha)
+    effective_hash = hashlib.sha256(expected_config.encode()).hexdigest()
+    if digest(effective_config) != effective_hash:
+        raise ValueError("effective optimizer configuration does not match pinned inputs")
+    downloaded_custom = {path: digest(base / Path(path).stem / f"custom_{Path(path).stem}.txt.raw") for path in custom_urls}
+    if any(downloaded_custom[path] != configs[path] for path in custom_urls):
+        raise ValueError("downloaded custom source does not match captured configuration")
     manifest = {
         "version": 1, "config_sha": config_sha, "config_sha256": configs,
+        "effective_config_sha256": effective_hash, "custom_source_urls": custom_urls,
+        "downloaded_custom_sha256": downloaded_custom,
         "output_sha256": {path: digest(lists / path) for path in OUTPUTS}, **feed_check,
     }
     (lists / MANIFEST).write_text(json.dumps(manifest, indent=2) + "\n")
     return manifest
 
 
-def validate_manifest(lists: Path, root: Path) -> dict:
+def validate_build_manifest(lists: Path, root: Path) -> dict:
     manifest = json.loads((lists / MANIFEST).read_text())
     if manifest.get("version") != 1 or manifest.get("successful") is not True or manifest.get("held") is not False or manifest.get("feed_problems") != []:
         raise ValueError("build check was failed, held, missing or had feed problems")
@@ -123,6 +159,46 @@ def validate_manifest(lists: Path, root: Path) -> dict:
                 committed = subprocess.check_output(["git", "-C", str(root), "show", f"{config_sha}:{path}"], stderr=subprocess.DEVNULL)
                 if hashlib.sha256(committed).hexdigest() != manifest[key][path]:
                     raise ValueError("configuration provenance mismatch")
+    expected_config, custom_urls = pinned_config((root / "blocklists.conf").read_text(), config_sha)
+    if (manifest.get("effective_config_sha256") != hashlib.sha256(expected_config.encode()).hexdigest()
+            or manifest.get("custom_source_urls") != custom_urls
+            or manifest.get("downloaded_custom_sha256") != {path: manifest["config_sha256"][path] for path in custom_urls}):
+        raise ValueError("missing or inconsistent pinned optimizer input evidence")
+    return manifest
+
+
+def validate_committed_outputs(lists: Path, root: Path, manifest: dict, published_sha: str) -> None:
+    if not re.fullmatch(r"[0-9a-f]{40}", published_sha) or published_sha != git(root, "rev-parse", "HEAD"):
+        raise ValueError("published commit does not match checkout")
+    if published_sha != git(root, "rev-parse", "refs/remotes/origin/main"):
+        raise ValueError("published commit is not the tracked production main ref")
+    if not is_ancestor(root, manifest["config_sha"], published_sha):
+        raise ValueError("build configuration is not in published commit")
+    for path in CONFIG:
+        committed = subprocess.check_output(["git", "-C", str(root), "show", f"{published_sha}:{path}"], stderr=subprocess.DEVNULL)
+        if hashlib.sha256(committed).hexdigest() != manifest["config_sha256"][path]:
+            raise ValueError("published configuration differs from optimizer inputs")
+    for name in OUTPUTS:
+        pointer = git(root, "show", f"{published_sha}:lists/{name}")
+        match = re.fullmatch(r"version https://git-lfs.github.com/spec/v1\noid sha256:([0-9a-f]{64})\nsize ([0-9]+)", pointer)
+        if not match or match[1] != manifest["output_sha256"][name] or int(match[2]) != (lists / name).stat().st_size:
+            raise ValueError(f"committed LFS output does not match build: {name}")
+
+
+def record_publication(lists: Path, root: Path, published_sha: str) -> None:
+    manifest = validate_build_manifest(lists, root)
+    validate_committed_outputs(lists, root, manifest, published_sha)
+    manifest["published_sha"] = published_sha
+    manifest["published_ref"] = "refs/heads/main"
+    (lists / MANIFEST).write_text(json.dumps(manifest, indent=2) + "\n")
+
+
+def validate_manifest(lists: Path, root: Path) -> dict:
+    manifest = validate_build_manifest(lists, root)
+    published_sha = manifest.get("published_sha")
+    if not isinstance(published_sha, str) or manifest.get("published_ref") != "refs/heads/main":
+        raise ValueError("missing successful production-main publication evidence")
+    validate_committed_outputs(lists, root, manifest, published_sha)
     return manifest
 
 
@@ -219,6 +295,8 @@ def pending_changes(github: GitHub) -> list[tuple[dict, PendingChange]]:
 
 def publish(github: GitHub, lists: Path, root: Path, dry_run: bool = False) -> PublicationResult:
     manifest = validate_manifest(lists, root)
+    if github.main_sha() != manifest["published_sha"]:
+        raise ValueError("production main moved since the verified publication commit")
     pending = pending_changes(github)
     result = PublicationResult()
     if not pending:
@@ -246,16 +324,33 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--lists", type=Path, required=True)
     parser.add_argument("--repo-root", type=Path, required=True)
     parser.add_argument("--dry-run", action="store_true")
-    parser.add_argument("--record-manifest", action="store_true")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--record-manifest", action="store_true")
+    mode.add_argument("--prepare-config", action="store_true")
+    mode.add_argument("--record-publication", action="store_true")
     parser.add_argument("--config-sha")
+    parser.add_argument("--published-sha")
+    parser.add_argument("--effective-config", type=Path)
+    parser.add_argument("--base", type=Path)
     parser.add_argument("--feed-check", type=Path)
     options = parser.parse_args(argv)
     try:
-        if options.record_manifest:
-            if not options.config_sha or not options.feed_check or options.dry_run:
-                parser.error("--record-manifest requires --config-sha and --feed-check, without --dry-run")
-            record_manifest(options.lists, options.repo_root, options.config_sha, json.loads(options.feed_check.read_text()))
+        if options.prepare_config:
+            if not options.config_sha or not options.effective_config or options.dry_run:
+                parser.error("--prepare-config requires --config-sha and --effective-config, without --dry-run")
+            prepare_config(options.repo_root, options.config_sha, options.effective_config)
+            print(json.dumps({"status": "prepared"}))
+        elif options.record_manifest:
+            if not options.config_sha or not options.feed_check or not options.effective_config or not options.base or options.dry_run:
+                parser.error("--record-manifest requires --config-sha, --feed-check, --effective-config and --base, without --dry-run")
+            (options.lists / MANIFEST).unlink(missing_ok=True)
+            record_manifest(options.lists, options.repo_root, options.config_sha, json.loads(options.feed_check.read_text()), options.effective_config, options.base)
             print(json.dumps({"status": "recorded"}))
+        elif options.record_publication:
+            if not options.published_sha or options.dry_run:
+                parser.error("--record-publication requires --published-sha, without --dry-run")
+            record_publication(options.lists, options.repo_root, options.published_sha)
+            print(json.dumps({"status": "publication_recorded"}))
         else:
             result = publish(GitHub.from_env(), options.lists, options.repo_root, options.dry_run)
             print(json.dumps(asdict(result), sort_keys=True))
