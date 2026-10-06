@@ -31,6 +31,7 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: .github/triage/uv.lock
+          save-cache: false
 
       - name: Run checks
         env:
