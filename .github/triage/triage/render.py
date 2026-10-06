@@ -1,7 +1,9 @@
 import re
 
-from triage.ai_review import Review
+from triage.ai_review import Review, for_publication
 from triage.evidence import Evidence
+from triage.observations import probe_name
+from triage.publication_safety import trim_sentences
 from triage.github_api import MARKER
 from triage.signals import NOTE, TOWARD_ALLOW, TOWARD_BLOCK, Signal
 from triage.signals import provider_flags as _provider_flags
@@ -11,7 +13,8 @@ UNSAFE_MD_RE = re.compile(r"[<>`|\[\]]")
 
 
 def safe(text: str, limit: int = 160) -> str:
-    return UNSAFE_MD_RE.sub("", text or "").strip()[:limit]
+    value = " ".join(UNSAFE_MD_RE.sub("", text or "").replace("@", "@​").split())
+    return trim_sentences(value, limit)
 
 
 def repo_lines(evidence: Evidence) -> list[str]:
@@ -81,12 +84,12 @@ def live_lines(evidence: Evidence) -> list[str]:
     lines = ["Resolves to: " + (", ".join(f"`{ip}`" for ip in evidence.addresses) or "nothing (no DNS answer)")]
     for fetch in evidence.fetches:
         if fetch.status is None:
-            lines.append(f"{fetch.profile}: failed ({safe(fetch.error or 'unknown')})")
+            lines.append(f"{probe_name(fetch.profile)}: failed ({safe(fetch.error or 'unknown')})")
             continue
         hops = " → ".join(f"`{safe(url, 120)}`" for url in fetch.chain)
-        lines.append(f"{fetch.profile}: HTTP {fetch.status}, title \"{safe(fetch.title, 100)}\", {fetch.size:,} bytes, via {hops}")
+        lines.append(f"{probe_name(fetch.profile)}: HTTP {fetch.status}, title \"{safe(fetch.title, 100)}\", {fetch.size:,} bytes, via {hops}")
     if evidence.fetches:
-        lines.append(f"Cloaking check: {evidence.cloaking or 'all visitor types got the same site'}")
+        lines.append(f"HTTP probe comparison: {evidence.cloaking or 'no difference detected by the probes; not a browser or crawler test'}")
     for fetch in evidence.quoted_fetches:
         start = safe(fetch.start or (fetch.chain[0] if fetch.chain else ""), 160)
         if fetch.status is None:
@@ -97,6 +100,14 @@ def live_lines(evidence: Evidence) -> list[str]:
         if fetch.script_redirects:
             targets = ", ".join(f"`{safe(url, 120)}`" for url in fetch.script_redirects)
             lines.append(f"Its script sends the browser on to {targets}")
+    if evidence.capture:
+        capture = evidence.capture
+        outcome = getattr(capture, "outcome", "") or ("failed" if capture.error else "captured")
+        status = getattr(capture, "status", None)
+        result = f"HTTP {status}" if status is not None else "HTTP status unrecorded"
+        lines.append(f"Browser capture: {safe(str(outcome))}, {result}, final URL `{safe(capture.final_url, 160)}`. "
+                     + (f"Capture error: {safe(capture.error)}" if capture.error else
+                        "Browser content was captured independently of the HTTP probes."))
     return lines
 
 
@@ -106,10 +117,10 @@ def facts_text(evidence: Evidence, signals: list[Signal], bar: tuple[bool, str] 
         ("Upstream sources that list it or a parent", [row.strip("| ").replace(" | ", ", ") for row in source_rows(evidence)] or ["none"]),
         ("Reputation", virustotal_lines(evidence) + registration_lines(evidence)),
         ("Live site", live_lines(evidence)),
-        ("Signals", [f"{LEAN_LABEL[s.lean]}: {s.text}" for s in signals] or ["none"]),
+        ("Signals", [f"{LEAN_LABEL[s.lean]}: {safe(s.text, 600)}" for s in signals] or ["none"]),
     ]
     if bar is not None:
-        sections.append(("Block evidence bar", [("met: " if bar[0] else "not met: ") + bar[1]]))
+        sections.append(("Automated block corroboration", [("met: " if bar[0] else "not met: ") + safe(bar[1], 600)]))
     return "\n".join(f"{title}:\n" + "\n".join(f"- {line}" for line in lines) for title, lines in sections)
 
 
@@ -119,6 +130,7 @@ def _review_block(review: Review | None) -> list[str]:
     heading = ["### AI view (MiniMax M3, advisory only)", ""]
     if review.error:
         return heading + [f"The AI review failed: {safe(review.error, 200)}", ""]
+    review = for_publication(review)
     lines = heading + [
         f"**Suggests:** {review.recommendation.replace('_', ' ')} ({review.confidence} confidence)",
         "",
@@ -167,9 +179,9 @@ def comment_markdown(
     if history and len(history) > 1:
         lines += _section("Triage history", [safe(entry, 300) for entry in history])
     lines += label_lines(label_notes)
-    lines += _section("Signals", [f"{LEAN_LABEL[s.lean]}: {s.text}" for s in signals] or ["No strong signals either way"])
+    lines += _section("Signals", [f"{LEAN_LABEL[s.lean]}: {safe(s.text, 600)}" for s in signals] or ["No strong signals either way"])
     if bar is not None:
-        lines += [f"**Block evidence bar:** {'met' if bar[0] else 'not met'}. {bar[1]}", ""]
+        lines += [f"**Automated block corroboration:** {'met' if bar[0] else 'not met'}. {safe(bar[1], 600)}", ""]
     lines += _review_block(review)
     lines += _section("This repository", repo_lines(evidence) + coverage_lines(evidence))
     lines += ["### Upstream sources", ""]
@@ -205,5 +217,7 @@ def evidence_note(evidence: Evidence) -> str:
 
 
 def first_sentence(text: str, limit: int = 180) -> str:
-    sentence = (text or "").replace("&lt;", "<").replace("&gt;", ">").split(". ")[0].strip().rstrip(".")
-    return sentence[:limit]
+    text = (text or "").replace("&lt;", "<").replace("&gt;", ">").strip()
+    ending = re.search(r"[.!?](?=\s|$)", text)
+    sentence = text[:ending.end()] if ending else text
+    return trim_sentences(sentence, limit).rstrip(".")
