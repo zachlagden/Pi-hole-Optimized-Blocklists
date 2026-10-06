@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
@@ -5,10 +6,10 @@ from triage import ai_review, live, render
 from triage.evidence import Evidence
 from triage.github_api import ThreadComment
 from triage.issue_form import IssueRequest
-from triage.domains import clean_domain
-from triage.state import MAX_STORED_BODY, TriageState, added_words, body_diff, body_sha
+from triage.state import MAX_STORED_BODY, TriageState, body_diff, body_sha
 
-COSMETIC_WORD_LIMIT = 3
+COSMETIC_WORDS = {"sadly", "unfortunately", "thanks", "thank", "you", "please"}
+PLACEHOLDER_RE = re.compile(r"(?im)^\s*(?:_?no response_?|n/a|none|[-_]+)\s*$")
 
 
 @dataclass
@@ -39,13 +40,15 @@ def new_urls(request: IssueRequest, comments: list[ThreadComment], state: Triage
     return [url for url in live.quoted_urls(text, domain, limit=10) if url not in state.seen_urls]
 
 
+def _substantive_words(body: str) -> list[str]:
+    text = PLACEHOLDER_RE.sub("", body)
+    return [word.lower() for word in re.findall(r"[\w]+(?:[./:@?=&%-][\w]+)*", text) if word.lower() not in COSMETIC_WORDS]
+
+
 def is_cosmetic_edit(state: TriageState, new_body: str) -> bool:
     if not state.body:
         return False
-    words = added_words(state.body, new_body)
-    if any("://" in word or clean_domain(word) for word in words if "." in word):
-        return False
-    return len(words) <= COSMETIC_WORD_LIMIT
+    return _substantive_words(state.body) == _substantive_words(new_body)
 
 
 def _ai_verdict(request: IssueRequest, state: TriageState, body_changed: bool, comments: list[ThreadComment], api_key: str) -> tuple[bool, str]:
@@ -66,7 +69,7 @@ def _ai_verdict(request: IssueRequest, state: TriageState, body_changed: bool, c
         return True, f"usefulness check failed ({type(error).__name__}), re-running to be safe"
 
 
-def check(issue: dict, request: IssueRequest, thread: list[ThreadComment], state: TriageState | None, api_key: str | None) -> Check:
+def check(issue: dict[str, object], request: IssueRequest, thread: list[ThreadComment], state: TriageState | None, api_key: str | None) -> Check:
     if issue.get("state") != "open":
         return Check(False, "", "the issue is closed")
     if state is None:
@@ -74,7 +77,7 @@ def check(issue: dict, request: IssueRequest, thread: list[ThreadComment], state
     body_changed = body_sha(request.body) != state.body_sha
     comments = unseen_comments(thread, state)
     if body_changed and not comments and is_cosmetic_edit(state, request.body):
-        return Check(False, "", "the edit only changed a few words, with no new URL or domain")
+        return Check(False, "", "the edit only changed formatting, placeholders or a few words of courtesy")
     if not body_changed and not comments:
         return Check(False, "", "nothing new since the last triage")
     trigger = describe_trigger(body_changed, comments)
@@ -90,6 +93,8 @@ def check(issue: dict, request: IssueRequest, thread: list[ThreadComment], state
 
 def next_state(request: IssueRequest, previous: TriageState | None, review: ai_review.Review | None, trigger: str, fetched: list[str], evidence: Evidence | None = None) -> TriageState:
     today = datetime.now(UTC).date().isoformat()
+    validated = ai_review.for_publication(review) if review and not review.error else None
+    site_bound = bool(validated and set(validated.site_observation_ids) & {observation.id for observation in validated.observations})
     recommendation = review.recommendation if review and not review.error else "no AI view"
     confidence = review.confidence if review and not review.error else ""
     verdict = f"{recommendation.replace('_', ' ')} ({confidence})" if confidence else recommendation.replace("_", " ")
@@ -107,7 +112,8 @@ def next_state(request: IssueRequest, previous: TriageState | None, review: ai_r
         recommendation=recommendation if review and not review.error else (previous.recommendation if previous else ""),
         confidence=confidence,
         questions=review.questions if review and not review.error else [],
-        site=render.first_sentence(review.site) if review and not review.error else "",
+        site=render.first_sentence(validated.site) if site_bound and validated else "",
+        site_observation_bound=site_bound,
         evidence=render.evidence_note(evidence) if evidence else "",
         vt_reputable=max((len(vt.reputable_hits) for vt in evidence.virustotal), default=0) if evidence else (previous.vt_reputable if previous else 0),
         listed_by=evidence.blocking_sources if evidence else (list(previous.listed_by) if previous else []),

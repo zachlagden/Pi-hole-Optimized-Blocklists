@@ -40,7 +40,7 @@ def plan_type(current: set[str], suggested: str | None, reason: str) -> LabelPla
     plan.add.add(suggested)
     plan.remove |= wrong
     was = ", ".join(sorted(wrong)) or "no type label"
-    plan.notes.append(f"type changed from {was} to {suggested}: {reason}")
+    plan.notes.append(f"type changed from {was} to {suggested}: advisory issue classification")
     return plan
 
 
@@ -51,7 +51,7 @@ def plan_impact(current: set[str], impact: str | None, reason: str) -> LabelPlan
         return plan
     plan.add.add(label)
     plan.remove |= current & set(IMPACT_LABELS.values())
-    plan.notes.append(f"{label}: {reason}")
+    plan.notes.append(f"{label}: advisory impact estimate")
     return plan
 
 
@@ -60,7 +60,7 @@ def plan_needs_info(current: set[str], recommendation: str) -> LabelPlan:
     if recommendation == "needs_info" and NEEDS_INFO not in current:
         plan.add.add(NEEDS_INFO)
         plan.notes.append("needs info: the AI review found the evidence too thin to decide")
-    elif recommendation != "needs_info" and NEEDS_INFO in current:
+    elif recommendation in {"block", "allow", "decline"} and NEEDS_INFO in current:
         plan.remove.add(NEEDS_INFO)
         plan.notes.append("needs info removed: the AI review now has enough to suggest a decision")
     return plan

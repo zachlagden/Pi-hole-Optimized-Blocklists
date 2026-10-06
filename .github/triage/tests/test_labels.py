@@ -23,6 +23,18 @@ def test_needs_info_only_on_that_recommendation():
     assert plan_needs_info(set(), "block").empty
 
 
-def test_merge_never_removes_what_it_adds():
+def test_public_label_notes_do_not_repeat_unverified_ai_reasons() -> None:
+    assert "Invented" not in " ".join(plan_type({"blocklist"}, "whitelist", "Invented link check").notes)
+    assert "Invented" not in " ".join(plan_impact(set(), "high", "Invented audience").notes)
+
+
+def test_unknown_or_failed_recommendation_preserves_needs_info() -> None:
+    for recommendation in ("", "unclear", "failed"):
+        assert plan_needs_info({"needs info"}, recommendation).empty
+    for recommendation in ("block", "allow", "decline"):
+        assert plan_needs_info({"needs info"}, recommendation).remove == {"needs info"}
+
+
+def test_merge_never_removes_what_it_adds() -> None:
     merged = merge(LabelPlan(add={"a"}), LabelPlan(remove={"a", "b"}))
     assert merged.add == {"a"} and merged.remove == {"b"}

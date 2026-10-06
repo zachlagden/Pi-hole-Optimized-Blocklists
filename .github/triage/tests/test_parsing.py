@@ -64,22 +64,22 @@ def test_popular_domain_is_never_its_own_lookalike():
     assert [item.brand for item in find_lookalikes("gooogle.com", ranks, 10_000)] == ["google.com"]
 
 
-def test_shared_platform_hosts_are_their_own_site():
+def test_shared_platform_hosts_are_their_own_site() -> None:
     from triage.domains import registrable, shared_platform
     assert registrable("pub-abc.r2.dev") == "pub-abc.r2.dev"
     assert shared_platform("pub-abc.r2.dev") == "r2.dev"
     assert shared_platform("a.b.example.co.uk") is None
-    assert self_and_parents("x.fatlantmxppress.us.cc") == ["x.fatlantmxppress.us.cc", "fatlantmxppress.us.cc"]
+    assert self_and_parents("x.example.github.io") == ["x.example.github.io", "example.github.io"]
 
 
-def test_quoted_urls_keep_paths_on_the_reported_host():
+def test_quoted_urls_keep_paths_on_the_reported_host() -> None:
     from triage.live import quoted_urls
     text = (
-        "lands on https://fatlantmxppress.us.cc/2b6848c72a3e, then "
-        "blob:https://pub-abc.r2.dev/daaab2f0 and https://t.co/nlVIYkWx9I plus https://fatlantmxppress.us.cc/"
+        "lands on https://shop.example/checkout, then "
+        "blob:https://image.example/capture and https://link.example/short plus https://shop.example/"
     )
-    assert quoted_urls(text, "fatlantmxppress.us.cc") == ["https://fatlantmxppress.us.cc/2b6848c72a3e"]
-    assert quoted_urls(text, "pub-abc.r2.dev") == ["https://pub-abc.r2.dev/daaab2f0"]
+    assert quoted_urls(text, "shop.example") == ["https://shop.example/checkout"]
+    assert quoted_urls(text, "image.example") == []
     assert quoted_urls(text, "example.com") == []
 
 
@@ -97,17 +97,20 @@ def test_old_age_gives_no_allow_credit_when_block_signals_exist():
     assert any("registered since" in s.text for s in collect(evidence, date(2026, 9, 23)))
 
 
-def test_provider_phishing_page_meets_the_bar():
+def test_provider_title_substring_does_not_meet_the_bar() -> None:
     from triage.evidence import Evidence
     from triage.issue_form import IssueRequest
     from triage.live import Fetch
-    from triage.signals import evidence_bar
-    request = IssueRequest(1, "block", "t", "a", "", "pub-x.r2.dev", "pub-x.r2.dev")
-    evidence = Evidence(request, "pub-x.r2.dev", "pub-x.r2.dev")
+    from triage.signals import NOTE, collect, evidence_bar
+    from datetime import date
+    request = IssueRequest(1, "block", "Acme report", "Alex", "", "example.com", "example.com")
+    evidence = Evidence(request, "example.com", "example.com")
     assert evidence_bar(evidence)[0] is False
-    evidence.quoted_fetches = [Fetch("desktop", chain=["https://pub-x.r2.dev/new.html"], status=403, title="Suspected Phishing  Cloudflare")]
+    evidence.quoted_fetches = [Fetch("desktop", chain=["https://example.com/page"], status=403, title="Suspected Phishing")]
     met, reason = evidence_bar(evidence)
-    assert met and "Cloudflare" in reason
+    assert not met and "not authenticated provider warnings" in reason
+    flag = next(signal for signal in collect(evidence, date(2031, 4, 11)) if "matched substring" in signal.text)
+    assert flag.lean == NOTE and "HTTP 403" in flag.text and "'Suspected Phishing'" in flag.text
 
 
 def test_script_redirects_follow_literals_and_variables():

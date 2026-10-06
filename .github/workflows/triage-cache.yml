@@ -1,0 +1,69 @@
+name: Warm triage caches
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/triage/pyproject.toml
+      - .github/triage/uv.lock
+      - .github/triage/triage/**
+      - .github/workflows/triage-cache.yml
+  schedule:
+    - cron: '15 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: triage-cache-main
+  cancel-in-progress: false
+
+jobs:
+  warm:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: .github/triage
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: .github/triage/uv.lock
+          save-cache: true
+
+      - name: Choose daily cache key
+        id: cache-date
+        run: echo "day=$(date -u +%F)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore Tranco, suffix list and browser caches
+        id: cache
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            ~/.cache/issue-triage
+            ~/.cache/ms-playwright
+          key: triage-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/triage/uv.lock') }}-${{ steps.cache-date.outputs.day }}
+          restore-keys: triage-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/triage/uv.lock') }}-
+
+      - name: Warm browser, Tranco and suffix list
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          uv sync --frozen --no-dev
+          uv run --frozen playwright install --with-deps chromium
+          uv run --frozen python -m triage.cache_warm
+
+      - name: Save warmed caches
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            ~/.cache/issue-triage
+            ~/.cache/ms-playwright
+          key: ${{ steps.cache.outputs.cache-primary-key }}

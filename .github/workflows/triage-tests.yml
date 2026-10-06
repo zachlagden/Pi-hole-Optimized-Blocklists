@@ -1,0 +1,34 @@
+name: Offline triage tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: .github/triage
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          python-version: '3.12'
+          enable-cache: true
+          cache-dependency-glob: .github/triage/uv.lock
+          save-cache: false
+
+      - name: Install frozen dependencies
+        run: uv sync --frozen
+
+      - name: Run offline tests
+        run: uv run --frozen pytest -q

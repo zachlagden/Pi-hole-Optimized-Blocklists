@@ -5,8 +5,14 @@ on:
     - cron: '0 0 * * 0'  # Run weekly on Sunday at midnight UTC
   workflow_dispatch:  # Allow manual triggering
 
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
 jobs:
   update-blocklists:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
     steps:
@@ -25,8 +31,31 @@ jobs:
           echo "✅ Pi-hole Blocklist Optimizer downloaded"
           ./pihole-optimizer --version
 
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: .github/triage/uv.lock
+          save-cache: false
+
+      - name: Install triage dependencies
+        working-directory: .github/triage
+        run: uv sync --frozen --no-dev
+
       - name: Run optimizer
+        id: optimizer
+        env:
+          REPO_ROOT: ${{ github.workspace }}
         run: |
+          OPTIMIZER_CONFIG_SHA=$(git rev-parse HEAD)
+          echo "config_sha=$OPTIMIZER_CONFIG_SHA" >> "$GITHUB_OUTPUT"
+          (
+            cd .github/triage
+            uv run --frozen python -m triage.publication --prepare-config \
+              --lists "$REPO_ROOT/pihole_blocklists_prod" \
+              --repo-root "$REPO_ROOT" \
+              --config-sha "$OPTIMIZER_CONFIG_SHA" \
+              --effective-config "$RUNNER_TEMP/triage-optimizer.conf"
+          )
           echo "🚀 Starting Pi-hole Blocklist Optimizer..."
 
           # Run with all features:
@@ -34,6 +63,7 @@ jobs:
           # --whitelist-report: Generate detailed whitelist report
           # --prod-dir: Output to production directory
           ./pihole-optimizer \
+            --config "$RUNNER_TEMP/triage-optimizer.conf" \
             -t 8 \
             --whitelist-report \
             --abp-lists nsfw \
@@ -57,11 +87,6 @@ jobs:
             head -50 pihole_blocklists_prod/whitelist_report.txt
           fi
 
-      - uses: astral-sh/setup-uv@v10.2.0
-        with:
-          enable-cache: true
-          cache-dependency-glob: .github/triage/uv.lock
-
       - name: Check feeds and new blocks
         id: buildcheck
         continue-on-error: true
@@ -74,12 +99,29 @@ jobs:
           DISCORD_TRIAGE_WEBHOOK: ${{ secrets.DISCORD_TRIAGE_WEBHOOK }}
           DISCORD_PING_USER_ID: ${{ secrets.DISCORD_PING_USER_ID }}
         run: |
-          uv sync --frozen --no-dev
-          uv run python -m triage buildcheck \
+          uv run --frozen python -m triage buildcheck \
             --old "$REPO_ROOT/lists" \
             --new "$REPO_ROOT/pihole_blocklists_prod" \
             --base "$REPO_ROOT/pihole_blocklists" \
-            --stats "$REPO_ROOT/.github/triage/feed-stats.json"
+            --stats "$REPO_ROOT/.github/triage/feed-stats.json" \
+            --feed-check "$RUNNER_TEMP/triage-feed-check.json"
+
+      - name: Record optimizer publication manifest
+        id: manifest
+        if: steps.buildcheck.outcome == 'success' && steps.buildcheck.outputs.run == 'false'
+        continue-on-error: true
+        working-directory: .github/triage
+        env:
+          REPO_ROOT: ${{ github.workspace }}
+          OPTIMIZER_CONFIG_SHA: ${{ steps.optimizer.outputs.config_sha }}
+        run: |
+          uv run --frozen python -m triage.publication --record-manifest \
+            --lists "$REPO_ROOT/pihole_blocklists_prod" \
+            --repo-root "$REPO_ROOT" \
+            --base "$REPO_ROOT/pihole_blocklists" \
+            --config-sha "$OPTIMIZER_CONFIG_SHA" \
+            --effective-config "$RUNNER_TEMP/triage-optimizer.conf" \
+            --feed-check "$RUNNER_TEMP/triage-feed-check.json"
 
       - name: Ping if the build check itself failed
         if: steps.buildcheck.outcome == 'failure'
@@ -93,6 +135,7 @@ jobs:
             | curl -fsS -H 'Content-Type: application/json' -d @- "$DISCORD_TRIAGE_WEBHOOK"
 
       - name: Extract statistics
+        if: steps.buildcheck.outputs.run != 'true'
         id: stats
         run: |
           echo "📊 Extracting statistics..."
@@ -151,6 +194,7 @@ jobs:
           echo "  Whitelist entries: $WHITELIST_ENTRIES"
 
       - name: Update README
+        if: steps.buildcheck.outputs.run != 'true'
         env:
           TOTAL_DOMAINS: ${{ steps.stats.outputs.total_domains }}
           TOTAL_DOMAINS_FMT: ${{ steps.stats.outputs.total_domains_formatted }}
@@ -192,6 +236,7 @@ jobs:
           echo "✅ README updated"
 
       - name: Check for changes
+        if: steps.buildcheck.outputs.run != 'true'
         id: check_changes
         run: |
           mkdir -p lists
@@ -228,12 +273,14 @@ jobs:
           echo "changed_files=$CHANGED_FILES" >> $GITHUB_OUTPUT
 
       - name: Configure Git
+        if: steps.buildcheck.outputs.run != 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git remote set-url origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/zachlagden/Pi-hole-Optimized-Blocklists.git
 
       - name: Commit and push
+        id: publish
         if: steps.check_changes.outputs.changes_detected == 'true' && steps.buildcheck.outputs.run != 'true'
         run: |
           git add lists/*.txt README.md
@@ -257,5 +304,48 @@ jobs:
           fi
 
       - name: No changes
-        if: steps.check_changes.outputs.changes_detected != 'true'
-        run: echo "ℹ️ No changes detected"
+        id: no_changes
+        if: steps.check_changes.outputs.changes_detected == 'false' && steps.buildcheck.outputs.run != 'true'
+        run: |
+          for file in all_domains advertising tracking malicious suspicious comprehensive nsfw nsfw_abp; do
+            cmp "pihole_blocklists_prod/$file.txt" "lists/$file.txt"
+          done
+          echo "ℹ️ No changes detected; all generated outputs match the checkout"
+
+      - name: Held build
+        if: steps.buildcheck.outputs.run == 'true'
+        run: echo "ℹ️ Build held; keeping the published lists unchanged"
+
+      - name: Verify publication
+        id: publication
+        if: >-
+          steps.buildcheck.outcome == 'success'
+          && steps.buildcheck.outputs.run == 'false'
+          && steps.manifest.outcome == 'success'
+          && (steps.publish.outcome == 'success' || steps.no_changes.outcome == 'success')
+        continue-on-error: true
+        working-directory: .github/triage
+        env:
+          REPO_ROOT: ${{ github.workspace }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          uv run --frozen python -m triage.publication --record-publication \
+            --lists "$REPO_ROOT/pihole_blocklists_prod" \
+            --repo-root "$REPO_ROOT" \
+            --published-sha "$(git -C "$REPO_ROOT" rev-parse HEAD)"
+          uv run --frozen python -m triage.publication \
+            --lists "$REPO_ROOT/pihole_blocklists_prod" --repo-root "$REPO_ROOT"
+
+      - name: Report publication verification failure
+        if: steps.publication.outcome == 'failure' || steps.manifest.outcome == 'failure'
+        continue-on-error: true
+        env:
+          DISCORD_TRIAGE_WEBHOOK: ${{ secrets.DISCORD_TRIAGE_WEBHOOK }}
+          DISCORD_PING_USER_ID: ${{ secrets.DISCORD_PING_USER_ID }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          echo "::warning::Publication verification failed after the build published or found no list changes; publication confirmations may be pending."
+          echo "Publication verification failed after a successful publish/no-change path. The build itself did not fail; publication confirmations may be pending. [Run]($RUN_URL)" >> "$GITHUB_STEP_SUMMARY"
+          jq -n --arg id "$DISCORD_PING_USER_ID" --arg url "$RUN_URL" \
+            '{content: "<@\($id)> Publication verification failed (the published build itself did not fail): \($url)", allowed_mentions: {users: [$id]}}' \
+            | curl -fsS -H 'Content-Type: application/json' -d @- "$DISCORD_TRIAGE_WEBHOOK"

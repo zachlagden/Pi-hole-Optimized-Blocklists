@@ -4,6 +4,7 @@ import os
 import sys
 from collections.abc import Callable
 from datetime import UTC, datetime
+from functools import partial
 from pathlib import Path
 from typing import TypeVar
 
@@ -15,6 +16,7 @@ from triage.evidence import Evidence
 from triage.github_api import GitHub
 from triage.issue_form import IssueRequest, from_issue
 from triage.labels import NEEDS_INFO, LabelPlan, merge, plan_impact, plan_needs_info, plan_type
+from triage.materials import collect_materials
 from triage.policy import TYPOSQUAT_POOL
 from triage.repo_state import custom_matches, whitelist_matches
 from triage.state import TriageState, parse_state
@@ -51,11 +53,11 @@ def gather_repo_and_sources(evidence: Evidence, repo_root: Path) -> None:
 def gather_reputation(evidence: Evidence, vt_key: str | None) -> None:
     names = [evidence.domain] + ([evidence.apex] if evidence.apex != evidence.domain else [])
     if vt_key:
-        evidence.virustotal = [attempt(evidence, f"VirusTotal {name}", lambda n=name: reputation.virustotal(n, vt_key), None) for name in names]
-        evidence.virustotal = [vt for vt in evidence.virustotal if vt is not None]
+        records = [attempt(evidence, f"VirusTotal {name}", partial(reputation.virustotal, name, vt_key), None) for name in names]
+        evidence.virustotal = [vt for vt in records if vt is not None]
     if not evidence.platform:
         evidence.registration = attempt(evidence, "RDAP", lambda: reputation.registration(evidence.apex), None)
-    ranks = attempt(evidence, "Tranco", lambda: reputation.tranco_ranks(CACHE_DIR / "tranco"), {})
+    ranks: dict[str, int] = attempt(evidence, "Tranco", lambda: reputation.tranco_ranks(CACHE_DIR / "tranco"), {})
     evidence.tranco_rank = ranks.get(evidence.domain)
     evidence.apex_tranco_rank = ranks.get(evidence.apex)
     if evidence.request.kind == "block" and ranks:
@@ -69,7 +71,7 @@ def gather_live(evidence: Evidence, take_screenshot: bool) -> None:
     request = evidence.request
     texts = [request.raw_domain, request.evidence, request.details, request.body] + [c.body for c in request.thread]
     urls = live.quoted_urls("\n".join(texts), evidence.domain, limit=5)
-    evidence.quoted_fetches = [attempt(evidence, f"fetch {url}", lambda u=url: live.fetch_url(u, "desktop"), live.Fetch("desktop", url)) for url in urls]
+    evidence.quoted_fetches = [attempt(evidence, f"fetch {url}", partial(live.fetch_url, url, "desktop"), live.Fetch("desktop", url)) for url in urls]
     live_quoted = next((f.chain[0] for f in evidence.quoted_fetches if f.status and f.status < 400), None)
     if take_screenshot and evidence.addresses:
         evidence.capture = attempt(evidence, "screenshot", lambda: screenshot.capture(evidence.domain, live_quoted), None)
@@ -83,6 +85,7 @@ def gather(request: IssueRequest, repo_root: Path, github: GitHub, options: argp
     gather_repo_and_sources(evidence, repo_root)
     gather_reputation(evidence, os.environ.get("VIRUSTOTAL_API_KEY"))
     gather_live(evidence, not options.no_screenshot)
+    evidence.materials = attempt(evidence, "referenced materials", lambda: collect_materials(request, github), [])
     evidence.reporter = attempt(evidence, "reporter lookup", lambda: github.reporter(request.author, domain), None)
     return evidence
 
@@ -162,7 +165,7 @@ def run_issue(options: argparse.Namespace) -> int:
     found = signals.collect(evidence, today)
     bar = signals.evidence_bar(evidence) if request.kind == "block" else None
     facts = render.facts_text(evidence, found, bar)
-    review = ai_review.review(evidence, facts, api_key, previous) if api_key else None
+    review = ai_review.review(evidence, facts, api_key, previous, today=today) if api_key else None
     plan = merge(type_plan, review_label_plan(current, review, classification))
     fetched = [f.start for f in evidence.quoted_fetches if f.start]
     state = rerun.next_state(request, previous, review, options.trigger, fetched, evidence)
@@ -197,13 +200,15 @@ def run_check(options: argparse.Namespace) -> int:
     request = from_issue(issue)
     if request.kind == "other":
         ping_reply(options, github, issue)
-        return scheduled.write_outputs(False, "", "not a domain issue")
+        scheduled.write_outputs(False, "", "not a domain issue")
+        return 0
     thread = github.thread(issue)
     previous = parse_state((github.report(options.number) or {}).get("body"))
     api_key = None if options.no_ai else os.environ.get("MINIMAX_API_KEY")
     result = rerun.check(issue, request, thread, previous, api_key)
     print(f"re-run: {result.run} ({result.reason})")
-    return scheduled.write_outputs(result.run, result.trigger, result.reason)
+    scheduled.write_outputs(result.run, result.trigger, result.reason)
+    return 0
 
 
 def ping_reply(options: argparse.Namespace, github: GitHub, issue: dict) -> None:
@@ -251,6 +256,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     build.add_argument("--new", required=True)
     build.add_argument("--base", required=True)
     build.add_argument("--stats", required=True)
+    build.add_argument("--feed-check", type=Path)
     build.add_argument("--no-discord", action="store_true")
     watcher = commands.add_parser("watch")
     watcher.add_argument("task", choices=["held", "remediated", "scorecard"])

@@ -98,7 +98,7 @@ def feed_problems(counts: dict[str, int | None], previous: dict[str, int]) -> li
 
 
 def domains_in(path: Path, candidates: set[str]) -> set[str]:
-    found = set()
+    found: set[str] = set()
     if not path.exists():
         return found
     with path.open(errors="replace") as handle:
@@ -157,7 +157,7 @@ def summary(report: BuildReport) -> str:
     if report.hold:
         lines.append(f"**Held:** the list shrank by more than {HOLD_SHRINK_RATIO:.0%} while feeds were failing, so this week's lists were NOT committed. Users keep last week's.")
     elif report.big_shrink:
-        lines.append(f"The list shrank by more than {HOLD_SHRINK_RATIO:.0%} but every feed downloaded, so it looks like upstream pruning. Committed as normal.")
+        lines.append(f"The list shrank by more than {HOLD_SHRINK_RATIO:.0%} with healthy feeds, so it may be upstream pruning. Publication can proceed if the remaining build steps succeed.")
     if report.feed_problems:
         lines.append("**Feed problems:**")
         lines += [f"- {problem.name}: {problem.problem}" for problem in report.feed_problems]
