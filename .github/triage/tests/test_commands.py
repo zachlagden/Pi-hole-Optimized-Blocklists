@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from triage.command_runner import file_note
 from triage.commands import (
     Command,
@@ -30,24 +32,34 @@ def test_parse_ignores_normal_comments_and_rejects_unknown():
     assert "don't understand" in parse("/block not_a_domain!").error
 
 
-def test_parse_decline_takes_the_rest_as_reason():
-    command = parse("/decline Shared platform, report the bucket to Google instead.\nThanks for the report.")
+def test_parse_decline_takes_the_rest_as_reason() -> None:
+    command = parse("/decline Shared platform, report the bucket to Acme instead.\nThanks for the report.")
+    assert command is not None
     assert command.action == "decline"
-    assert command.message == "Shared platform, report the bucket to Google instead.\n\nThanks for the report."
+    assert command.message == "Shared platform, report the bucket to Acme instead.\n\nThanks for the report."
 
 
-def test_block_problems_catch_shared_hosts_duplicates_and_whitelisted():
-    problems = " ".join(block_problems(["storage.googleapis.com", "r2.dev", "amexp.com", "commbank.com.au"], REPO))
+def test_block_problems_catch_shared_hosts_duplicates_and_whitelisted(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from triage import commands
+    (tmp_path / "custom").mkdir()
+    (tmp_path / "custom/malicious.txt").write_text("||blocked.example^\n")
+    (tmp_path / "whitelist.txt").write_text("allowed.example\n")
+    monkeypatch.setattr(commands, "SHARED_PATH_HOSTS", {"shared.example": "Acme hosting"})
+    monkeypatch.setattr(commands, "shared_platform", lambda domain: domain if domain == "platform.example" else None)
+    problems = " ".join(block_problems(["shared.example", "platform.example", "blocked.example", "allowed.example"], tmp_path))
     assert "serves many users by path" in problems
     assert "shared platform itself" in problems
-    assert "already covered by `||amexp.com^`" in problems
-    assert "whitelisted" in problems
-    assert block_problems(["fresh-new-scam-domain-example.com"], REPO) == []
+    assert "already covered" in problems
+    assert "conflicts with `whitelist.txt`" in problems
+    assert block_problems(["fresh.example"], tmp_path) == []
 
 
-def test_allow_problems_catch_existing_entries():
-    assert allow_problems(["commbank.com.au"], REPO)
-    assert allow_problems(["fresh-new-legit-example.com"], REPO) == []
+def test_allow_problems_catch_existing_entries(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from triage import commands
+    monkeypatch.setattr(commands, "shared_platform", lambda domain: None)
+    (tmp_path / "whitelist.txt").write_text("allowed.example\n")
+    assert allow_problems(["allowed.example"], tmp_path)
+    assert allow_problems(["fresh.example"], tmp_path) == []
 
 
 def test_append_block_formats_entries():
@@ -72,12 +84,12 @@ def test_insert_allow_block_goes_at_the_end_of_the_reported_section_and_bumps_th
     assert len(lines) == len(original.splitlines()) + 3
 
 
-def test_file_note_uses_message_then_site_and_evidence():
-    state = TriageState(domain="bad.example", site="Fake Amex login page", evidence="VT 8/89 for bad.example incl. ESET")
+def test_file_note_uses_message_then_site_and_evidence() -> None:
+    state = TriageState(domain="bad.example", site="Fake Acme login page", evidence="Fictional evidence for bad.example")
     note = file_note(Command("block"), ["bad.example"], state, 9, 10)
-    assert note == "bad.example: Fake Amex login page. VT 8/89 for bad.example incl. ESET. (#9, PR #10)"
+    assert note == "bad.example: Fake Acme login page. Fictional evidence for bad.example. (#9, PR #10)"
     note = file_note(Command("block", message="Confirmed kit host."), ["bad.example"], state, 9, None)
-    assert note == "bad.example: Confirmed kit host. VT 8/89 for bad.example incl. ESET. (#9)"
+    assert note == "bad.example: Confirmed kit host. Fictional evidence for bad.example. (#9)"
     assert file_note(Command("block"), ["other.example"], state, 9, 10) == "other.example: found while triaging this issue. (#9, PR #10)"
 
 
@@ -86,3 +98,46 @@ def test_owner_commands_are_not_thread_context():
     assert is_command({"author_association": "OWNER", "body": "/block now"})
     assert not is_command({"author_association": "OWNER", "body": "Looks like a kit host to me"})
     assert not is_command({"author_association": "NONE", "body": "/block everything"})
+
+
+def test_parse_normalizes_and_deduplicates() -> None:
+    command = parse("/block HTTPS://EXAMPLE.COM/ example.com. ||example.com^")
+    assert command is not None and command.domains == ["example.com"]
+
+
+def test_batch_scope_and_atomic_conflicts(monkeypatch: pytest.MonkeyPatch) -> None:
+    from triage import commands
+    monkeypatch.setattr(commands, "shared_platform", lambda domain: None)
+    monkeypatch.setattr(commands, "SHARED_PATH_HOSTS", {"shared.example": "Acme hosting"})
+    files = {"whitelist.txt": "allowed.example\n/^child\\.conflict\\.example$/\n", "custom/malicious.txt": "existing.example\n||broad.example^\n"}
+    plan = commands.plan_domains(Command("block"), ["existing.example", "child.broad.example", "fresh.example"], files)
+    assert plan.domains == ["existing.example", "fresh.example"]
+    assert len(plan.skipped) == 1
+    plan = commands.plan_domains(Command("block", exact=True), ["existing.example", "fresh.example"], files)
+    assert plan.domains == ["fresh.example"] and len(plan.skipped) == 1
+    plan = commands.plan_domains(Command("block"), ["fresh.example", "shared.example", "allowed.example", "conflict.example"], files)
+    assert len(plan.problems) == 3
+    plan = commands.plan_domains(Command("allow"), ["fresh.example", "shared.example"], files)
+    assert len(plan.problems) == 1
+
+
+def test_reports_require_actual_actions_bot_and_keep_human_markers() -> None:
+    import httpx
+    from triage.github_api import GitHub, MARKER
+    from triage.state import TriageState
+    forged = {"id": 1, "user": {"login": "Alex", "type": "User"}, "body": MARKER + TriageState(domain="forged.example").to_marker()}
+    impostor = {"id": 2, "user": {"login": "Sam", "type": "Bot"}, "body": MARKER}
+    old = {"id": 3, "user": {"login": "github-actions[bot]", "type": "Bot"}, "body": MARKER + TriageState(domain="example.com").to_marker()}
+    calls: list[tuple[str, str]] = []
+
+    def transport(request: httpx.Request) -> httpx.Response:
+        calls.append((request.method, request.url.path))
+        return httpx.Response(200, json=[forged, impostor, old] if request.method == "GET" else {"html_url": "https://example.com/comment"})
+
+    github = GitHub("fictional-token", "Acme/example")
+    github.client = httpx.Client(base_url="https://example.com", transport=httpx.MockTransport(transport))
+    assert github.report(7) == old
+    assert [comment.id for comment in github.thread({"number": 7, "user": {"login": "Alex"}})] == [1]
+    github.upsert_report(7, MARKER + "updated")
+    assert ("PATCH", "/repos/Acme/example/issues/comments/3") in calls
+    assert not any(method == "DELETE" for method, _ in calls)

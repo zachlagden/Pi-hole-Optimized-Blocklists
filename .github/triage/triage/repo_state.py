@@ -15,14 +15,20 @@ class RepoMatch:
 
 
 def custom_matches(repo_root: Path, domain: str) -> list[RepoMatch]:
+    return custom_matches_text({f"custom/{path.name}": path.read_text() for path in sorted((repo_root / "custom").glob("*.txt"))}, domain)
+
+
+def custom_matches_text(files: dict[str, str], domain: str) -> list[RepoMatch]:
     matches: list[RepoMatch] = []
-    for path in sorted((repo_root / "custom").glob("*.txt")):
-        for number, line in enumerate(path.read_text().splitlines(), start=1):
+    for path, text in sorted(files.items()):
+        if not path.startswith("custom/"):
+            continue
+        for number, line in enumerate(text.splitlines(), start=1):
             entry = extract_entry(line, allow_wildcards=True)
             if entry is None or not entry_blocks(entry, domain):
                 continue
             how = "exact" if entry.domain == domain else f"parent {entry.domain} with subdomains"
-            matches.append(RepoMatch(f"custom/{path.name}", number, line.strip(), how))
+            matches.append(RepoMatch(path, number, line.strip(), how))
     return matches
 
 
@@ -50,8 +56,11 @@ def _whitelist_hit(line: str, domain: str) -> str | None:
 
 
 def whitelist_matches(repo_root: Path, domain: str) -> list[RepoMatch]:
+    return whitelist_matches_text((repo_root / "whitelist.txt").read_text(), domain)
+
+
+def whitelist_matches_text(text: str, domain: str) -> list[RepoMatch]:
     matches: list[RepoMatch] = []
-    text = (repo_root / "whitelist.txt").read_text()
     for number, raw in enumerate(text.splitlines(), start=1):
         line = raw.split("#", 1)[0].strip()
         if not line:

@@ -1,6 +1,7 @@
 import os
 from dataclasses import dataclass, field
 from datetime import date, datetime
+from typing import Any
 from urllib.parse import quote
 
 import httpx
@@ -35,6 +36,15 @@ def _role(comment: dict, issue_author: str) -> str:
     return "someone else"
 
 
+def is_bot_comment(comment: dict) -> bool:
+    user = comment.get("user") or {}
+    return user.get("login") == "github-actions[bot]" and user.get("type") == "Bot"
+
+
+def is_report(comment: dict) -> bool:
+    return is_bot_comment(comment) and MARKER in (comment.get("body") or "")
+
+
 def is_command(comment: dict) -> bool:
     return comment.get("author_association") == "OWNER" and (comment.get("body") or "").lstrip().startswith("/")
 
@@ -61,7 +71,7 @@ class GitHub:
     def from_env(cls) -> "GitHub":
         return cls(os.environ["GITHUB_TOKEN"], os.environ.get("GITHUB_REPOSITORY", "zachlagden/Pi-hole-Optimized-Blocklists"))
 
-    def _get(self, path: str, **params) -> dict | list:
+    def _get(self, path: str, **params: Any) -> Any:
         response = self.client.get(path, params=params or None)
         response.raise_for_status()
         return response.json()
@@ -86,7 +96,19 @@ class GitHub:
         return found
 
     def report(self, number: int) -> dict | None:
-        return next((c for c in self.comments(number) if MARKER in (c.get("body") or "")), None)
+        return next((c for c in self.comments(number) if is_report(c)), None)
+
+    def pull_request(self, number: int) -> dict:
+        return self._get(f"/repos/{self.repository}/pulls/{number}")
+
+    def pending_issues(self) -> list[dict]:
+        found: list[dict] = []
+        for page in range(1, 11):
+            batch = self._get(f"/repos/{self.repository}/issues", state="all", sort="updated", direction="desc", per_page=100, page=page)
+            found.extend(issue for issue in batch if "pull_request" not in issue)
+            if len(batch) < 100:
+                break
+        return found
 
     def thread(self, issue: dict) -> list[ThreadComment]:
         author = (issue.get("user") or {}).get("login", "")
@@ -98,12 +120,12 @@ class GitHub:
                 body=c.get("body") or "",
             )
             for c in self.comments(issue["number"])
-            if c["user"].get("type") != "Bot" and MARKER not in (c.get("body") or "") and not is_command(c)
+            if c["user"].get("type") != "Bot" and not is_command(c)
         ]
 
     def upsert_report(self, number: int, body: str) -> str:
         comments = self.comments(number)
-        existing = next((c for c in comments if MARKER in (c.get("body") or "")), None)
+        existing = next((c for c in comments if is_report(c)), None)
         if existing and not is_buried(comments, existing):
             response = self.client.patch(f"/repos/{self.repository}/issues/comments/{existing['id']}", json={"body": body})
             response.raise_for_status()
@@ -115,6 +137,10 @@ class GitHub:
             if deleted.status_code != 404:
                 deleted.raise_for_status()
         return response.json()["html_url"]
+
+    def edit_comment(self, comment_id: int, body: str) -> None:
+        response = self.client.patch(f"/repos/{self.repository}/issues/comments/{comment_id}", json={"body": body})
+        response.raise_for_status()
 
     def edit_labels(self, number: int, add: set[str], remove: set[str]) -> None:
         for name in sorted(remove):

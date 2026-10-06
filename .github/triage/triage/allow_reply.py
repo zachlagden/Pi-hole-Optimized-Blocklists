@@ -4,8 +4,9 @@ from triage.state import TriageState
 
 WHAT_CHANGED = (
     "The domain was added to this project's allowlist (whitelist.txt). The allowlist overrides any "
-    "upstream feed that lists the domain, in this build and in future builds, so it stays unblocked "
-    "even if a feed lists it again."
+    "upstream feed that lists the domain when a successful rebuild consumes the merged configuration. "
+    "The configuration is merged, but publication is still pending verification; do not say the "
+    "published lists have already changed."
 )
 SCOPE_WORDS = {
     "domain": ("the domain and all its subdomains", "each domain and all its subdomains"),
@@ -58,7 +59,7 @@ def fallback_reply(context: dict) -> str:
     listed = ", ".join(f"`{domain}`" for domain in context["domains"])
     verb = "are" if len(context["domains"]) > 1 else "is"
     return (
-        f"Thanks for the report. {listed} {verb} now allowed in {context['pull_request']}. "
+        f"Thanks for the report. The allowlist configuration for {listed} {verb} merged in {context['pull_request']}. "
         f"{context['timing_sentence']} If you run a Pi-hole yourself, you can allow it there in the meantime."
     )
 
