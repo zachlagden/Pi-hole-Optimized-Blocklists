@@ -34,7 +34,11 @@ def fake_network(monkeypatch: MonkeyPatch, handler: Callable[[httpx.Request], ht
     calls: list[str] = []
     def dispatch(req: httpx.Request) -> httpx.Response:
         calls.append(str(req.url))
-        return handler(req)
+        response = handler(req)
+        if response.is_stream_consumed:
+            return httpx.Response(response.status_code, headers=response.headers,
+                                  stream=httpx.ByteStream(response.content))
+        return response
 
     def client(**kwargs: object) -> httpx.Client:
         return HTTPX_CLIENT(transport=httpx.MockTransport(dispatch))

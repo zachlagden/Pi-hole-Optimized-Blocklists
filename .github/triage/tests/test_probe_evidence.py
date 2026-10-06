@@ -1,4 +1,5 @@
 import time
+from collections.abc import Iterator
 from datetime import date
 from types import SimpleNamespace
 from typing import Any, cast
@@ -62,6 +63,48 @@ def test_time_budget_makes_no_request(monkeypatch: MonkeyPatch) -> None:
     with httpx.Client(transport=httpx.MockTransport(handler)) as client:
         result = live.bounded_get(client, "https://example.com", budget=live.RequestBudget(deadline=time.monotonic() - 1))
     assert result.error == "request budget exhausted"
+
+
+class SmallChunkStream(httpx.SyncByteStream):
+    def __init__(self, clock: list[float], advance: float) -> None:
+        self.clock = clock
+        self.advance = advance
+        self.received = 0
+        self.exhausted = False
+        self.closed = False
+
+    def __iter__(self) -> Iterator[bytes]:
+        for _ in range(100):
+            self.clock[0] += self.advance
+            self.received += 1
+            yield b"x"
+        self.exhausted = True
+
+    def close(self) -> None:
+        self.closed = True
+
+
+@pytest.mark.parametrize("advance,max_body", [(1.0, 1000), (0.0, 2)])
+def test_small_transport_chunks_enforce_deadline_and_body_budget_before_exhaustion(
+    monkeypatch: MonkeyPatch, advance: float, max_body: int,
+) -> None:
+    clock = [0.0]
+    stream = SmallChunkStream(clock, advance)
+    monkeypatch.setattr(live.time, "monotonic", lambda: clock[0])
+    monkeypatch.setattr(live, "safe_url", lambda url: True)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.headers["Accept-Encoding"] == "identity"
+        assert request.extensions["timeout"]["read"] == 3.0
+        return httpx.Response(200, headers={"content-encoding": "identity"}, stream=stream)
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        result = live.bounded_get(client, "https://example.com/drip", max_body=max_body,
+                                  budget=live.RequestBudget(deadline=3.0))
+    assert result.error == "response exceeds byte or time limit" and not result.body
+    assert stream.received == 3 and not stream.exhausted and stream.closed
+    if advance:
+        assert clock[0] == 3.0
 
 
 class FakePage:

@@ -196,7 +196,7 @@ def bounded_get(client: httpx.Client, start: str, max_body: int = MAX_BODY, max_
                     return result
                 chunks: list[bytes] = []
                 size = 0
-                for chunk in response.iter_bytes(chunk_size=16_384):
+                for chunk in response.iter_raw():
                     size += len(chunk)
                     if size > max_body or time.monotonic() >= budget.deadline:
                         result.error = "response exceeds byte or time limit"
