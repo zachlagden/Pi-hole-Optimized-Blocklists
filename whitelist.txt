@@ -1,5 +1,5 @@
 # Zach's Lists - Default Whitelist
-# Last Updated: 01/10/2026 - Allowlisted randomplanet.com (#132)
+# Last Updated: 07/10/2026 - Allowlisted weatherextension.com (#165)
 
 # ============================================================================
 # GOOGLE SERVICES
@@ -1016,6 +1016,11 @@ rusfootball.info
 # Marietta, GA, distributing a notarized Apple silicon driver for the Zoom TAC-2 Thunderbolt audio
 # inter. VT 1/91 for randomplanet.com; registered 2010-01-16. (#132, PR #133)
 randomplanet.com
+
+# weatherextension.com: Official website for the Weather Extension browser add-on, offering
+# forecasts, radar, weather alerts and a paid Pro tier, with installs for Chrome, Firefox, Edge and
+# Opera. registered 2017-03-05. (#165, PR #166)
+weatherextension.com
 
 # ============================================================================
 # REGEX PATTERNS
