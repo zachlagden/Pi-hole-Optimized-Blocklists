@@ -1,5 +1,5 @@
 # Zach's Lists - Default Whitelist
-# Last Updated: 07/10/2026 - Allowlisted weatherextension.com (#165)
+# Last Updated: 08/10/2026 - Allowlisted self-events-data.trafficmanager.net (#167)
 
 # ============================================================================
 # GOOGLE SERVICES
@@ -1021,6 +1021,11 @@ randomplanet.com
 # forecasts, radar, weather alerts and a paid Pro tier, with installs for Chrome, Firefox, Edge and
 # Opera. registered 2017-03-05. (#165, PR #166)
 weatherextension.com
+
+# self-events-data.trafficmanager.net: A Microsoft 365 diagnostic-data endpoint (CNAME target of
+# self.events.data.microsoft.com) hosted on Azure Traffic Manager; it returns HTTP 404 to regular
+# browser visits because it. (#167)
+self-events-data.trafficmanager.net
 
 # ============================================================================
 # REGEX PATTERNS
