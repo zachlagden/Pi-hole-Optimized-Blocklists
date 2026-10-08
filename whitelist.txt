@@ -1024,7 +1024,7 @@ weatherextension.com
 
 # self-events-data.trafficmanager.net: A Microsoft 365 diagnostic-data endpoint (CNAME target of
 # self.events.data.microsoft.com) hosted on Azure Traffic Manager; it returns HTTP 404 to regular
-# browser visits because it. (#167)
+# browser visits because it. (#167, PR #168)
 self-events-data.trafficmanager.net
 
 # ============================================================================
