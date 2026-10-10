@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TypeVar
 
-from triage import ai_review, command_runner, live, render, reputation, rerun, scheduled, screenshot, signals
+from triage import ai_review, command_runner, lint, live, render, reputation, rerun, scheduled, screenshot, signals
 from triage.coverage import build_coverage
 from triage.discord import Discord, plain_embed, triage_embed
 from triage.domains import registrable, self_and_parents, shared_platform
@@ -222,6 +222,17 @@ def make_discord(options: argparse.Namespace) -> Discord | None:
     return Discord(webhook, os.environ.get("DISCORD_PING_USER_ID", ""))
 
 
+def run_lint(options: argparse.Namespace) -> int:
+    repo_root = Path(options.repo_root)
+    problems = lint.lint_repo(repo_root)
+    if options.changed_since:
+        problems += lint.check_added_sources(repo_root, options.changed_since)
+    for problem in problems:
+        print(f"::error file={problem.path},line={problem.line}::{problem.message}")
+    print(f"{len(problems)} problem(s) found" if problems else "Lists, sources and whitelist are valid")
+    return 1 if problems else 0
+
+
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="triage")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -256,6 +267,9 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     watcher.add_argument("task", choices=["held", "remediated", "scorecard"])
     watcher.add_argument("--repo-root", default=os.environ.get("REPO_ROOT", "../.."))
     watcher.add_argument("--no-discord", action="store_true")
+    linter = commands.add_parser("lint")
+    linter.add_argument("--repo-root", default=os.environ.get("REPO_ROOT", "../.."))
+    linter.add_argument("--changed-since", default=None)
     return parser.parse_args(argv)
 
 
@@ -265,6 +279,8 @@ def main(argv: list[str]) -> int:
         return scheduled.run_buildcheck(options, make_discord(options))
     if options.command == "watch":
         return scheduled.run_watch(options, make_discord(options))
+    if options.command == "lint":
+        return run_lint(options)
     if options.command == "command":
         return command_runner.run(options.number, options.comment_id, Path(options.repo_root), make_discord(options))
     return run_issue(options) if options.command == "issue" else run_check(options)

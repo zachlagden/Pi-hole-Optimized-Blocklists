@@ -22,7 +22,9 @@ Pi-hole-Optimized-Blocklists/
 ├── .github/
 │   ├── workflows/
 │   │   ├── update-blocklists.yml   # Weekly blocklist update automation
-│   │   └── issue-triage.yml        # Evidence report, AI view and labels on new issues
+│   │   ├── issue-triage.yml        # Evidence report, AI view and labels on new issues
+│   │   ├── triage-watch.yml        # Daily and monthly checks on held requests and custom entries
+│   │   └── pr-checks.yml           # Triage tests and list checks on PRs and pushes to main
 │   ├── triage/                     # Python package the triage workflow runs (uv)
 │   ├── ISSUE_TEMPLATE/             # Bug report, block domain, false positive, feature request
 │   ├── PULL_REQUEST_TEMPLATE.md
@@ -89,6 +91,12 @@ Maintainer commands (Stage 2): the owner comments on an issue, and the `command`
 - Text on the lines after the command is the closing message (for `/allow`, the reply to the reporter). With no text, a factual template says where the change landed and when it takes effect. The first paragraph also becomes the file comment, otherwise the AI's site description plus the evidence summary from the triage state.
 - `now` triggers `update-blocklists.yml` straight after the merge.
 - Refusals, posted as a comment with a confused reaction: shared-by-path hosts (`policy.SHARED_PATH_HOSTS`), platform suffixes, `/allow` without `exact` on a domain that is or contains a hosting platform (`github.io`, `amazonaws.com`), domains already listed or whitelisted, closed issues, and unknown commands. Success gets a rocket reaction and a Discord message without a ping.
+- Before opening its PR, a command runs the list checks below on the edited file and refuses if the edit adds a problem. The bot's PRs are made with `GITHUB_TOKEN`, which starts no workflows, so `pr-checks.yml` never sees them.
+
+List checks (`uv run python -m triage lint`, run by `pr-checks.yml`):
+- `blocklists.conf`: `url|name|category[|abp]`, https URLs, a known category, unique names and URLs. With `--changed-since <ref>`, each source added since that ref must download and contain at least one domain.
+- `custom/*.txt`: every line is a domain, `||domain^` or `*.domain`, with no duplicates, and nothing that blocks a whole hosting platform.
+- `whitelist.txt`: valid domains, wildcards and regexes, no duplicates, and no regex the optimizer's Rust engine rejects (lookaround, backreferences). A bare entry that is or contains a hosting platform from the Public Suffix List fails, because it also allows every customer site; use an exact regex such as `/^github\.io$/`. Deliberate exceptions live in `policy.PLATFORM_ALLOW_EXCEPTIONS`.
 
 Scheduled checks (Stage 3):
 - The weekly build (`update-blocklists.yml`) runs `triage buildcheck` after the optimizer, with `continue-on-error` so a bug in the check never blocks the build. It checks three things:
