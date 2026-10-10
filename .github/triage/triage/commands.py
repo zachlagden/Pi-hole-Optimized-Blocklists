@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from triage.domains import clean_domain, hosted_platform, shared_platform
-from triage.policy import SHARED_PATH_HOSTS
+from triage.policy import PLATFORM_ALLOW_EXCEPTIONS, SHARED_PATH_HOSTS
 from triage.repo_state import custom_matches, whitelist_matches
 
 ACTIONS = {"block", "allow", "decline", "retriage"}
@@ -84,7 +84,7 @@ def block_problems(domains: list[str], repo_root: Path) -> list[str]:
 def allow_problems(domains: list[str], repo_root: Path, scope: str = "domain") -> list[str]:
     problems = []
     for domain in domains:
-        if scope != "exact" and (platform := hosted_platform(domain)):
+        if scope != "exact" and domain not in PLATFORM_ALLOW_EXCEPTIONS and (platform := hosted_platform(domain)):
             problems.append(
                 f"`{domain}` hosts other people's sites (`{platform}`), so allowing its subdomains would unblock "
                 f"all of them; use `/allow exact`, or allow the specific host"

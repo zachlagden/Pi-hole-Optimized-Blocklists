@@ -19,6 +19,7 @@ from triage.commands import (
 from triage.discord import Discord, plain_embed
 from triage.github_api import GitHub
 from triage.issue_form import IssueRequest, from_issue
+from triage.lint import Problem, new_problems
 from triage.repo_ops import MergeConflict, RepoOps
 from triage.state import TriageState, parse_state
 
@@ -31,6 +32,12 @@ TIMING_WEEKLY = "It takes effect at the next weekly rebuild (Sundays 00:00 UTC).
 class Actor:
     login: str
     api_key: str | None = None
+
+
+class LintRefusal(Exception):
+    def __init__(self, problems: list[Problem]):
+        super().__init__("; ".join(str(problem) for problem in problems))
+        self.problems = problems
 
 
 @dataclass
@@ -91,8 +98,11 @@ def handle(github: GitHub, ops: RepoOps, issue: dict, command: Command, comment_
     problems = block_problems(domains, repo_root) if command.action == "block" else allow_problems(domains, repo_root, command.scope)
     if problems:
         return refuse(ops, number, comment_id, "Nothing changed:\n" + "\n".join(f"- {p}" for p in problems))
-    with ops.lock():
-        merged = change(ops, issue, command, domains, state, request.category, request.service)
+    try:
+        with ops.lock():
+            merged = change(ops, issue, command, domains, state, request.category, request.service)
+    except LintRefusal as refusal:
+        return refuse(ops, number, comment_id, "Nothing changed, because the edit would fail the list checks:\n" + "\n".join(f"- `{p}`" for p in refusal.problems))
     if command.action == "block":
         closing = f"Blocked in #{merged.pr} ({', '.join(f'`{entry}`' for entry in merged.entries)}). {merged.timing}"
         ops.comment(number, f"{command.message}\n\n{closing}" if command.message else closing)
@@ -139,6 +149,8 @@ def change_once(ops: RepoOps, issue: dict, command: Command, domains: list[str],
         text = entry_block(entries, file_note(command, domains, state, number, pr))
         return append_block(original, text) if block else insert_allow_block(original, text, today, f"Allowlisted {', '.join(domains)} (#{number})")
 
+    if problems := new_problems(path, original, render(None)):
+        raise LintRefusal(problems)
     branch = f"triage/issue-{number}-{command.action}-{int(time.time())}"
     ops.create_branch(branch, ops.main_sha())
     sha = ops.write_file(path, branch, render(None), sha, title)

@@ -59,6 +59,13 @@ SHARED_PATH_HOSTS = {
     "onedrive.live.com": "OneDrive",
 }
 
+PLATFORM_ALLOW_EXCEPTIONS = {
+    "myaddr.io": "addr.tools dynamic DNS, allowed for every user deliberately, #84",
+    "myaddr.tools": "addr.tools dynamic DNS, allowed for every user deliberately, #84",
+    "myaddr.dev": "addr.tools dynamic DNS, allowed for every user deliberately, #84",
+    "githubusercontent.com": "GitHub's own content hosts; listed as a platform for cookie isolation, not customer sites",
+}
+
 POPULAR_RANK = 100_000
 NEW_FP_RANK = 100_000
 FEED_DROP_RATIO = 0.5
