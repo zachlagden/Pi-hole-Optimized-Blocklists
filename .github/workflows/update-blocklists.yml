@@ -115,6 +115,7 @@ jobs:
           SUSPICIOUS_DOMAINS=$(count_domains "pihole_blocklists_prod/suspicious.txt")
           COMPREHENSIVE_DOMAINS=$(count_domains "pihole_blocklists_prod/comprehensive.txt")
           NSFW_DOMAINS=$(count_domains "pihole_blocklists_prod/nsfw.txt")
+          NSFW_ABP_DOMAINS=$(count_domains "pihole_blocklists_prod/nsfw_abp.txt")
 
           # Count source lists and whitelist entries
           SOURCE_LISTS=$(grep -v "^#" blocklists.conf | grep -v "^$" | wc -l)
@@ -141,6 +142,7 @@ jobs:
           echo "suspicious_domains=$(format_number $SUSPICIOUS_DOMAINS)" >> $GITHUB_OUTPUT
           echo "comprehensive_domains=$(format_number $COMPREHENSIVE_DOMAINS)" >> $GITHUB_OUTPUT
           echo "nsfw_domains=$(format_number $NSFW_DOMAINS)" >> $GITHUB_OUTPUT
+          echo "nsfw_abp_domains=$(format_number $NSFW_ABP_DOMAINS)" >> $GITHUB_OUTPUT
           echo "update_date=$(date +%B\ %d,\ %Y)" >> $GITHUB_OUTPUT
 
           echo ""
@@ -160,6 +162,7 @@ jobs:
           SUSPICIOUS_DOMAINS: ${{ steps.stats.outputs.suspicious_domains }}
           COMPREHENSIVE_DOMAINS: ${{ steps.stats.outputs.comprehensive_domains }}
           NSFW_DOMAINS: ${{ steps.stats.outputs.nsfw_domains }}
+          NSFW_ABP_DOMAINS: ${{ steps.stats.outputs.nsfw_abp_domains }}
           UPDATE_DATE: ${{ steps.stats.outputs.update_date }}
         run: |
           # Update badge
@@ -177,7 +180,8 @@ jobs:
               -v mal="$MALICIOUS_DOMAINS" \
               -v sus="$SUSPICIOUS_DOMAINS" \
               -v comp="$COMPREHENSIVE_DOMAINS" \
-              -v nsfw="$NSFW_DOMAINS" '
+              -v nsfw="$NSFW_DOMAINS" \
+              -v nsfwabp="$NSFW_ABP_DOMAINS" '
           /\[all_domains\.txt\]/ { gsub(/[0-9,]+ \|$/, all " |") }
           /\[advertising\.txt\]/ { gsub(/[0-9,]+ \|$/, ad " |") }
           /\[tracking\.txt\]/ { gsub(/[0-9,]+ \|$/, track " |") }
@@ -185,7 +189,7 @@ jobs:
           /\[suspicious\.txt\]/ { gsub(/[0-9,]+ \|$/, sus " |") }
           /\[comprehensive\.txt\]/ { gsub(/[0-9,]+ \|$/, comp " |") }
           /\[nsfw\.txt\]/ { gsub(/[0-9,]+ \|$/, nsfw " |") }
-          /\[nsfw_abp\.txt\]/ { gsub(/[0-9,]+ \|$/, nsfw " |") }
+          /\[nsfw_abp\.txt\]/ { gsub(/[0-9,]+ \|$/, nsfwabp " |") }
           { print }
           ' README.md > README.md.tmp && mv README.md.tmp README.md
 

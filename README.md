@@ -30,7 +30,7 @@
 | **[nsfw.txt](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/main/lists/nsfw.txt)** | Adult content (separate) | 526,338 |
 | **[nsfw_abp.txt](https://media.githubusercontent.com/media/zachlagden/Pi-hole-Optimized-Blocklists/main/lists/nsfw_abp.txt)** | Adult content — ABP format, blocks subdomains too | 526,338 |
 
-> **Note:** `nsfw.txt` is **not** included in `all_domains.txt` because it blocks legitimate adult sites. Add it separately if you want NSFW blocking. `nsfw_abp.txt` contains the same domains in ABP form (`||domain^`), so subdomains are blocked too — use it instead of `nsfw.txt` for more thorough filtering (needs Pi-hole Core ≥ 5.16).
+> **Note:** `nsfw.txt` is **not** included in `all_domains.txt` because it blocks legitimate adult sites. Add it separately if you want NSFW blocking. `nsfw_abp.txt` covers the same domains in ABP form (`||domain^`), so subdomains are blocked too. It leaves out subdomains that one of its rules already blocks, so it has fewer lines than `nsfw.txt`. Use it instead of `nsfw.txt`, not alongside it, for more thorough filtering (needs Pi-hole Core ≥ 5.16).
 
 **Last updated**: October 04, 2026
 
