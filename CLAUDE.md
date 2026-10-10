@@ -88,7 +88,7 @@ Maintainer commands (Stage 2): the owner comments on an issue, and the `command`
 - `/decline <reason>` labels the issue `declined` and closes it as not planned. `/retriage` re-runs the triage.
 - Text on the lines after the command is the closing message (for `/allow`, the reply to the reporter). With no text, a factual template says where the change landed and when it takes effect. The first paragraph also becomes the file comment, otherwise the AI's site description plus the evidence summary from the triage state.
 - `now` triggers `update-blocklists.yml` straight after the merge.
-- Refusals, posted as a comment with a confused reaction: shared-by-path hosts (`policy.SHARED_PATH_HOSTS`), platform suffixes, domains already listed or whitelisted, closed issues, and unknown commands. Success gets a rocket reaction and a Discord message without a ping.
+- Refusals, posted as a comment with a confused reaction: shared-by-path hosts (`policy.SHARED_PATH_HOSTS`), platform suffixes, `/allow` without `exact` on a domain that is or contains a hosting platform (`github.io`, `amazonaws.com`), domains already listed or whitelisted, closed issues, and unknown commands. Success gets a rocket reaction and a Discord message without a ping.
 
 Scheduled checks (Stage 3):
 - The weekly build (`update-blocklists.yml`) runs `triage buildcheck` after the optimizer, with `continue-on-error` so a bug in the check never blocks the build. It checks three things:
