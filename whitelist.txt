@@ -1,5 +1,9 @@
 # Zach's Lists - Default Whitelist
-# Last Updated: 08/10/2026 - Allowlisted self-events-data.trafficmanager.net (#167)
+# Last Updated: 10/10/2026 - Shared hosting platforms allow only their own hosts, not customer sites
+#
+# A bare entry also allows every subdomain. For a shared hosting platform (GitHub Pages, S3,
+# Cloud Storage, CDN edge hostnames) that would unblock every customer site on it, including
+# phishing and malware, so platform entries use a regex that matches only the platform's own hosts.
 
 # ============================================================================
 # GOOGLE SERVICES
@@ -68,7 +72,8 @@ alt8-mtalk.google.com
 
 # Other Google
 gstatic.com
-googleapis.com
+# Google API hosts (analytics.googleapis.com), not Cloud Storage buckets (x.storage.googleapis.com)
+/^([a-z0-9-]+\.)?googleapis\.com$/
 appspot-preview.l.google.com
 geo3.ggpht.com
 instantmessaging-pa.googleapis.com
@@ -323,8 +328,8 @@ ads.facebook.com
 # ============================================================================
 # AMAZON / AWS
 # ============================================================================
-amazonaws.com
-s3.amazonaws.com
+/^amazonaws\.com$/
+/^s3\.amazonaws\.com$/
 cloudsync-prod.s3.amazonaws.com
 reddit-uploaded-media.s3-accelerate.amazonaws.com
 whispersystems-textsecure-attachments.s3-accelerate.amazonaws.com
@@ -339,12 +344,12 @@ whispersystems-textsecure-attachments.s3-accelerate.amazonaws.com
 # CDN & INFRASTRUCTURE
 # ============================================================================
 # Akamai
-akamaihd.net
+/^akamaihd\.net$/
 akamaitechnologies.com
-akamaized.net
+/^akamaized\.net$/
 
 # Cloudflare
-cdn.cloudflare.net
+/^cdn\.cloudflare\.net$/
 cdnjs.cloudflare.com
 
 # jsDelivr
@@ -574,7 +579,7 @@ forums.sonarr.tv
 
 # GitHub
 github.com
-github.io
+/^github\.io$/
 raw.githubusercontent.com
 gist.github.com
 api.github.com
