@@ -139,7 +139,6 @@ device.auth.xboxlive.com
 title.mgt.xboxlive.com
 xsts.auth.xboxlive.com
 title.auth.xboxlive.com
-ctldl.windowsupdate.com
 attestation.xboxlive.com
 xboxexperiencesprod.experimentation.xboxlive.com
 xflight.xboxlive.com
@@ -810,19 +809,7 @@ ads-fa-darwin.hulustream.com
 # ============================================================================
 # CAPTIVE PORTAL DETECTION
 # ============================================================================
-# Android/Chrome
-connectivitycheck.android.com
-connectivitycheck.gstatic.com
-
-# Windows/Microsoft
-msftncsi.com
-www.msftncsi.com
-www.msftconnecttest.com
-ipv6.msftncsi.com
-
-# Apple
-captive.apple.com
-
+# Android, Windows and Apple connectivity checks are in their service sections above.
 # Firefox
 detectportal.firefox.com
 
@@ -830,14 +817,10 @@ detectportal.firefox.com
 # LOCATION / GEO SERVICES (blocked in Ultimate)
 # ============================================================================
 # MaxMind GeoIP (used by many sites for regional content)
-js.maxmind.com
 geoip.maxmind.com
 www.maxmind.com
 
 # IP geolocation services
-ip-api.com
-pro.ip-api.com
-ipinfo.io
 ipapi.co
 freegeoip.app
 api.ipgeolocation.io
@@ -1072,20 +1055,3 @@ self-events-data.trafficmanager.net
 /(\.|^)adspower\.net$/
 /(\.|^)adspower-ru\.com$/
 
-# ============================================================================
-# WILDCARD PATTERNS
-# ============================================================================
-*.twimg.com
-*.symcb.com
-*.fbcdn.net
-*.rmbl.ws
-*.online-metrix.net
-*.skype.com
-*.hwcdn.net
-*.o9.de
-*.githubusercontent.com
-*.steamcontent.com
-*.nflxvideo.net
-*.netflix.com
-*.telegram.org
-*.gitlab.com
