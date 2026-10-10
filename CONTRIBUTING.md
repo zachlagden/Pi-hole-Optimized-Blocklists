@@ -10,7 +10,7 @@ The most common contributions are domain reports. Use the issue templates provid
 
 Use the **Block Domain** template. Provide:
 - The domain to block
-- The category (malicious, advertising, tracking, or suspicious)
+- The category (malicious, advertising, tracking, suspicious or NSFW)
 - Evidence or reasoning
 
 The maintainer will verify the domain and add it to the appropriate `custom/<category>.txt` file via a PR.
@@ -37,7 +37,7 @@ A bot posts an evidence report on block and false-positive issues: where the dom
 - `custom/<category>.txt` files hold community-reported domains to block (one domain per line)
 - Custom lists support wildcard blocking: a line `||example.com^` (or the shorthand `*.example.com`) blocks `example.com` **and all its subdomains**, while a plain `example.com` blocks only that exact host. Wildcards apply to `custom/*.txt` only.
 - `whitelist.txt` holds domains that should not be blocked (organised by service/section)
-- `blocklists.conf` holds URLs to upstream blocklist sources (`url|name|category` format)
+- `blocklists.conf` holds URLs to upstream blocklist sources (`url|name|category`, with an optional fourth field `abp` to keep a source's `||domain^` rules)
 - The optimizer binary runs weekly, downloads all sources (including the custom lists via raw GitHub URL), and produces the deduplicated output in `lists/`
 - `lists/*.txt` are generated files tracked with Git LFS — **do not edit these directly**
 
@@ -75,7 +75,8 @@ If you want to contribute directly rather than through an issue:
 - Write a clear title following conventional commit format
 - Fill in the PR template
 - Reference the related issue where applicable (`Closes #123`)
-- The maintainer will review your PR for domain validity, correct formatting, and duplicates
+- Automated checks run on every PR. They reject malformed or duplicate entries, whitelist entries that would allow every site on a shared hosting platform such as `github.io`, and new sources that fail to download
+- The maintainer reviews every PR before merging
 
 ## Licence
 
