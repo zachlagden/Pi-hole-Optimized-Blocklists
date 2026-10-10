@@ -19,11 +19,20 @@ jobs:
 
       - name: Download optimizer binary
         run: |
+          version=$(sed -n 's/^version=//p' .github/optimizer-pin)
+          sha256=$(sed -n 's/^sha256=//p' .github/optimizer-pin)
           curl -fsSL -o pihole-optimizer \
-            https://github.com/zachlagden/Pi-hole-Blocklist-Optimizer/releases/latest/download/pihole-optimizer-linux-x86_64
+            "https://github.com/zachlagden/Pi-hole-Blocklist-Optimizer/releases/download/v${version}/pihole-optimizer-linux-x86_64"
+          echo "${sha256}  pihole-optimizer" | sha256sum -c -
           chmod +x pihole-optimizer
-          echo "✅ Pi-hole Blocklist Optimizer downloaded"
+          echo "✅ Pi-hole Blocklist Optimizer v${version} downloaded and verified"
           ./pihole-optimizer --version
+
+          latest=$(curl -fsSL -o /dev/null -w '%{url_effective}' \
+            https://github.com/zachlagden/Pi-hole-Blocklist-Optimizer/releases/latest | sed 's#.*/tag/v##') || latest=""
+          if [ -n "$latest" ] && [ "$latest" != "$version" ]; then
+            echo "::notice::Optimizer v${latest} is released; this build uses the pinned v${version}. Update .github/optimizer-pin to move to it."
+          fi
 
       - name: Run optimizer
         run: |

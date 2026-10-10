@@ -10,7 +10,7 @@ Pre-optimized, deduplicated blocklists for Pi-hole. Lists are built weekly from 
 
 A GitHub Actions workflow (`.github/workflows/update-blocklists.yml`) runs every Sunday at midnight UTC:
 
-1. Downloads the latest `pihole-optimizer` binary from GitHub Releases
+1. Downloads the `pihole-optimizer` release pinned in `.github/optimizer-pin` and checks its SHA-256
 2. Runs it against `blocklists.conf` (source URLs) and `whitelist.txt` (false-positive exclusions)
 3. Produces deduplicated, categorized blocklists in `pihole_blocklists_prod/`
 4. Copies changed files into `lists/`, updates README statistics, and commits
@@ -26,6 +26,7 @@ Pi-hole-Optimized-Blocklists/
 │   │   ├── triage-watch.yml        # Daily and monthly checks on held requests and custom entries
 │   │   └── pr-checks.yml           # Triage tests and list checks on PRs and pushes to main
 │   ├── triage/                     # Python package the triage workflow runs (uv)
+│   ├── optimizer-pin               # Optimizer version and SHA-256 the weekly build uses
 │   ├── ISSUE_TEMPLATE/             # Bug report, block domain, false positive, feature request
 │   ├── PULL_REQUEST_TEMPLATE.md
 │   └── dependabot.yml
@@ -65,7 +66,7 @@ Pi-hole-Optimized-Blocklists/
 ## Important Notes
 
 - The `lists/` directory uses Git LFS — large text files are stored as LFS pointers. **NEVER edit these files directly.**
-- The optimizer binary is downloaded from GitHub Releases, not built locally
+- The optimizer binary is downloaded from GitHub Releases, not built locally. The build uses the version in `.github/optimizer-pin` and fails if the download's SHA-256 differs from the pinned one. A new optimizer release changes nothing here until a PR bumps both lines, copying the checksum from that release's `SHA256SUMS` asset. The build logs a notice when a newer release exists.
 - `nsfw.txt` is deliberately excluded from `all_domains.txt`
 - The workflow uses a `GH_PAT` secret for pushing commits and LFS operations
 - The triage workflow uses `VIRUSTOTAL_API_KEY`, `MINIMAX_API_KEY`, `DISCORD_TRIAGE_WEBHOOK` and `DISCORD_PING_USER_ID` secrets
