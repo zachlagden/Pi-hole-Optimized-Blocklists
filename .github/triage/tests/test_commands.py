@@ -50,6 +50,14 @@ def test_allow_problems_catch_existing_entries():
     assert allow_problems(["fresh-new-legit-example.com"], REPO) == []
 
 
+def test_allow_problems_refuse_platform_subdomains_but_not_exact_or_tenants():
+    for domain in ["github.io", "amazonaws.com"]:
+        assert "hosts other people's sites" in " ".join(allow_problems([domain], REPO))
+        assert "hosts other people's sites" in " ".join(allow_problems([domain], REPO, "subdomains"))
+        assert "hosts other people's sites" not in " ".join(allow_problems([domain], REPO, "exact"))
+    assert allow_problems(["fresh-legit-project.github.io"], REPO) == []
+
+
 def test_append_block_formats_entries():
     block = entry_block(entries_for(["a.example"], exact=False), "a.example: fake shop. (#9, PR #10)")
     assert append_block("# header\n||old.example^\n\n", block) == "# header\n||old.example^\n# a.example: fake shop. (#9, PR #10)\n||a.example^\n"
