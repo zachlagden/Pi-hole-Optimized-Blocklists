@@ -66,7 +66,7 @@ jobs:
             head -50 pihole_blocklists_prod/whitelist_report.txt
           fi
 
-      - uses: astral-sh/setup-uv@v10.3.0
+      - uses: astral-sh/setup-uv@v10.3.2
         with:
           enable-cache: true
           cache-dependency-glob: .github/triage/uv.lock
