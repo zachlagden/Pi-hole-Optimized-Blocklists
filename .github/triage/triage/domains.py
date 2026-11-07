@@ -65,3 +65,19 @@ def self_and_parents(domain: str) -> list[str]:
 def shared_platform(domain: str) -> str | None:
     parts = _extractor()(domain)
     return parts.suffix if parts.is_private else None
+
+
+@lru_cache(maxsize=1)
+def _platform_suffixes() -> frozenset[str]:
+    cache_dir = Path.home() / ".cache" / "issue-triage" / "tldextract"
+    public = tldextract.TLDExtract(cache_dir=str(cache_dir), include_psl_private_domains=False).tlds
+    every = (suffix.removeprefix("*.").removeprefix("!") for suffix in _extractor().tlds)
+    return frozenset(every) - frozenset(public)
+
+
+def hosted_platform(domain: str) -> str | None:
+    suffixes = _platform_suffixes()
+    if domain in suffixes:
+        return domain
+    tail = f".{domain}"
+    return min((suffix for suffix in suffixes if suffix.endswith(tail)), key=len, default=None)

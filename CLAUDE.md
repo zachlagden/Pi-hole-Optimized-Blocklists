@@ -10,7 +10,7 @@ Pre-optimized, deduplicated blocklists for Pi-hole. Lists are built weekly from 
 
 A GitHub Actions workflow (`.github/workflows/update-blocklists.yml`) runs every Sunday at midnight UTC:
 
-1. Downloads the latest `pihole-optimizer` binary from GitHub Releases
+1. Downloads the `pihole-optimizer` release pinned in `.github/optimizer-pin` and checks its SHA-256
 2. Runs it against `blocklists.conf` (source URLs) and `whitelist.txt` (false-positive exclusions)
 3. Produces deduplicated, categorized blocklists in `pihole_blocklists_prod/`
 4. Copies changed files into `lists/`, updates README statistics, and commits
@@ -24,8 +24,12 @@ Pi-hole-Optimized-Blocklists/
 ├── .github/
 │   ├── workflows/
 │   │   ├── update-blocklists.yml   # Weekly blocklist update automation
-│   │   └── issue-triage.yml        # Evidence report, AI view and labels on new issues
+│   │   ├── issue-triage.yml        # Evidence report, AI view and labels on new issues
+│   │   ├── triage-watch.yml        # Daily and monthly checks on held requests and custom entries
+│   │   ├── triage-cache.yml        # Daily main-only warming of the triage browser and data caches
+│   │   └── pr-checks.yml           # Triage tests and list checks on PRs and pushes to main
 │   ├── triage/                     # Python package the triage workflow runs (uv)
+│   ├── optimizer-pin               # Optimizer version and SHA-256 the weekly build uses
 │   ├── ISSUE_TEMPLATE/             # Bug report, block domain, false positive, feature request
 │   ├── PULL_REQUEST_TEMPLATE.md
 │   └── dependabot.yml
@@ -65,7 +69,7 @@ Pi-hole-Optimized-Blocklists/
 ## Important Notes
 
 - The `lists/` directory uses Git LFS — large text files are stored as LFS pointers. **NEVER edit these files directly.**
-- The optimizer binary is downloaded from GitHub Releases, not built locally
+- The optimizer binary is downloaded from GitHub Releases, not built locally. The build uses the version in `.github/optimizer-pin` and fails if the download's SHA-256 differs from the pinned one. A new optimizer release changes nothing here until a PR bumps both lines, copying the checksum from that release's `SHA256SUMS` asset. The build logs a notice when a newer release exists.
 - `nsfw.txt` is deliberately excluded from `all_domains.txt`
 - The workflow uses a `GH_PAT` secret for pushing commits and LFS operations
 - The triage workflow uses `VIRUSTOTAL_API_KEY`, `MINIMAX_API_KEY`, `DISCORD_TRIAGE_WEBHOOK` and `DISCORD_PING_USER_ID` secrets
@@ -93,7 +97,13 @@ Maintainer commands (Stage 2): only an issue comment with `author_association: O
 - Text on the lines after the command is the closing message (for `/allow`, the reply to the reporter). Its first paragraph also becomes the file note. Without owner text, notes use only observation-bound saved site context plus deterministic evidence; legacy freeform descriptions are not reused as verified facts.
 - `now` attempts to dispatch `update-blocklists.yml` after merge. A successful dispatch means queued, not published; a failed dispatch is explicitly reported without claiming a rebuild was queued.
 - Commands record an authenticated pending-publication marker before follow-up work. Cleanup, dispatch, comment, label, closure, reaction and notification failures report the merged PR and precise failed stage, rather than saying nothing changed. The CLI also logs a structured merge outcome. If all comment attempts fail, the maintainer must recover persistent tracking from that log and PR.
-- Refusals include shared-by-path hosts (`policy.SHARED_PATH_HOSTS`), platform suffixes, unsafe domains, whitelist conflicts, implicit domains on closed issues and unknown commands. Entirely redundant batches need no merge; partially redundant batches report skips. Successful command handling gets a rocket reaction and a Discord message without a ping.
+- Refusals include shared-by-path hosts (`policy.SHARED_PATH_HOSTS`), platform suffixes, `/allow` without `exact` on a domain that is or contains a hosting platform (`github.io`, `amazonaws.com`), unsafe domains, whitelist conflicts, implicit domains on closed issues and unknown commands. Entirely redundant batches need no merge; partially redundant batches report skips. Successful command handling gets a rocket reaction and a Discord message without a ping.
+- Before opening its PR, a command runs the list checks below on the edited file and refuses if the edit adds a problem. The bot's PRs are made with `GITHUB_TOKEN`, which starts no workflows, so `pr-checks.yml` never sees them.
+
+List checks (`uv run python -m triage lint`, run by `pr-checks.yml`):
+- `blocklists.conf`: `url|name|category[|abp]`, https URLs, a known category, unique names and URLs. With `--changed-since <ref>`, each source added since that ref must download and contain at least one domain.
+- `custom/*.txt`: every line is a domain, `||domain^` or `*.domain`, with no duplicates, and nothing that blocks a whole hosting platform.
+- `whitelist.txt`: valid domains, wildcards and regexes, no duplicates, and no regex the optimizer's Rust engine rejects (lookaround, backreferences). A bare entry that is or contains a hosting platform from the Public Suffix List fails, because it also allows every customer site; use an exact regex such as `/^github\.io$/`. Deliberate exceptions live in `policy.PLATFORM_ALLOW_EXCEPTIONS`.
 
 Scheduled checks (Stage 3):
 - The weekly build (`update-blocklists.yml`) runs `triage buildcheck` after the optimizer, with `continue-on-error` so a bug in the check never blocks the build. It checks three things:
@@ -106,7 +116,7 @@ Scheduled checks (Stage 3):
 - The weekly workflow's verification token has `contents: read`, `issues: write`, `pull-requests: read`; GH_PAT-based publishing is unchanged. Verification/notification failures are nonblocking and explicitly say confirmations may be pending, not that the published build failed.
 - `triage-watch.yml` runs `held` daily: when reputable VirusTotal engines rise on an open block request, it re-triages and pings. On the 1st of each month it runs `remediated`, which lists custom entries whose comment says "review if remediated" and that are clean on VirusTotal now, and `scorecard`, which counts separate whitelisted false-positive reports per feed and alerts at 3 or more. Run either by hand with `gh workflow run triage-watch.yml -f task=<held|remediated|scorecard>`.
 
-Data/browser caches use a versioned OS/architecture/lockfile key. Issue jobs restore only and never save caches. The main-only `triage-cache.yml` warms Chromium, Tranco and the public suffix list daily/manual/on relevant pushes, saving at most one compatible cache per UTC day. `triage-tests.yml` runs the frozen offline pytest suite on PRs and main pushes (Python 3.12); test guards reject real HTTP, DNS, sockets and browser starts while allowing explicit fakes/MockTransport. Local offline checks: `cd .github/triage && uv sync --frozen && uv run --frozen python -m pytest -q`.
+Data/browser caches use a versioned OS/architecture/lockfile key. Issue jobs restore only and never save caches. The main-only `triage-cache.yml` warms Chromium, Tranco and the public suffix list daily/manual/on relevant pushes, saving at most one compatible cache per UTC day. The `tests` job in `pr-checks.yml` runs the frozen offline pytest suite on PRs and main pushes (Python 3.12); test guards reject real HTTP, DNS, sockets and browser starts while allowing explicit fakes/MockTransport. Local offline checks: `cd .github/triage && uv sync --frozen && uv run --frozen python -m pytest -q`.
 
 Labels: type (`blocklist`, `whitelist`, `bug`, `enhancement`), status (`needs info`, `duplicate`, `declined`), impact (`impact: high`, `impact: medium`, `impact: low`) and `maintenance` for Dependabot and CI PRs.
 

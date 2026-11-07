@@ -1,5 +1,9 @@
 # Zach's Lists - Default Whitelist
-# Last Updated: 01/10/2026 - Allowlisted randomplanet.com (#132)
+# Last Updated: 10/10/2026 - Shared hosting platforms allow only their own hosts, not customer sites
+#
+# A bare entry also allows every subdomain. For a shared hosting platform (GitHub Pages, S3,
+# Cloud Storage, CDN edge hostnames) that would unblock every customer site on it, including
+# phishing and malware, so platform entries use a regex that matches only the platform's own hosts.
 
 # ============================================================================
 # GOOGLE SERVICES
@@ -68,7 +72,8 @@ alt8-mtalk.google.com
 
 # Other Google
 gstatic.com
-googleapis.com
+# Google API hosts (analytics.googleapis.com), not Cloud Storage buckets (x.storage.googleapis.com)
+/^([a-z0-9-]+\.)?googleapis\.com$/
 appspot-preview.l.google.com
 geo3.ggpht.com
 instantmessaging-pa.googleapis.com
@@ -134,7 +139,6 @@ device.auth.xboxlive.com
 title.mgt.xboxlive.com
 xsts.auth.xboxlive.com
 title.auth.xboxlive.com
-ctldl.windowsupdate.com
 attestation.xboxlive.com
 xboxexperiencesprod.experimentation.xboxlive.com
 xflight.xboxlive.com
@@ -323,8 +327,8 @@ ads.facebook.com
 # ============================================================================
 # AMAZON / AWS
 # ============================================================================
-amazonaws.com
-s3.amazonaws.com
+/^amazonaws\.com$/
+/^s3\.amazonaws\.com$/
 cloudsync-prod.s3.amazonaws.com
 reddit-uploaded-media.s3-accelerate.amazonaws.com
 whispersystems-textsecure-attachments.s3-accelerate.amazonaws.com
@@ -339,12 +343,12 @@ whispersystems-textsecure-attachments.s3-accelerate.amazonaws.com
 # CDN & INFRASTRUCTURE
 # ============================================================================
 # Akamai
-akamaihd.net
+/^akamaihd\.net$/
 akamaitechnologies.com
-akamaized.net
+/^akamaized\.net$/
 
 # Cloudflare
-cdn.cloudflare.net
+/^cdn\.cloudflare\.net$/
 cdnjs.cloudflare.com
 
 # jsDelivr
@@ -574,7 +578,7 @@ forums.sonarr.tv
 
 # GitHub
 github.com
-github.io
+/^github\.io$/
 raw.githubusercontent.com
 gist.github.com
 api.github.com
@@ -805,19 +809,7 @@ ads-fa-darwin.hulustream.com
 # ============================================================================
 # CAPTIVE PORTAL DETECTION
 # ============================================================================
-# Android/Chrome
-connectivitycheck.android.com
-connectivitycheck.gstatic.com
-
-# Windows/Microsoft
-msftncsi.com
-www.msftncsi.com
-www.msftconnecttest.com
-ipv6.msftncsi.com
-
-# Apple
-captive.apple.com
-
+# Android, Windows and Apple connectivity checks are in their service sections above.
 # Firefox
 detectportal.firefox.com
 
@@ -825,14 +817,10 @@ detectportal.firefox.com
 # LOCATION / GEO SERVICES (blocked in Ultimate)
 # ============================================================================
 # MaxMind GeoIP (used by many sites for regional content)
-js.maxmind.com
 geoip.maxmind.com
 www.maxmind.com
 
 # IP geolocation services
-ip-api.com
-pro.ip-api.com
-ipinfo.io
 ipapi.co
 freegeoip.app
 api.ipgeolocation.io
@@ -1017,6 +1005,17 @@ rusfootball.info
 # inter. VT 1/91 for randomplanet.com; registered 2010-01-16. (#132, PR #133)
 randomplanet.com
 
+# weatherextension.com: Official website for the Weather Extension browser add-on, offering
+# forecasts, radar, weather alerts and a paid Pro tier, with installs for Chrome, Firefox, Edge and
+# Opera. registered 2017-03-05. (#165, PR #166)
+weatherextension.com
+
+# self-events-data.trafficmanager.net: A Microsoft 365 diagnostic-data endpoint (CNAME target of
+# self.events.data.microsoft.com) hosted on Azure Traffic Manager. It returns HTTP 404 to regular
+# browser visits because it is a telemetry collector, not a website. Microsoft lists its parent
+# endpoint family as required for Microsoft 365. (#167, PR #168)
+self-events-data.trafficmanager.net
+
 # ============================================================================
 # REGEX PATTERNS
 # ============================================================================
@@ -1056,20 +1055,3 @@ randomplanet.com
 /(\.|^)adspower\.net$/
 /(\.|^)adspower-ru\.com$/
 
-# ============================================================================
-# WILDCARD PATTERNS
-# ============================================================================
-*.twimg.com
-*.symcb.com
-*.fbcdn.net
-*.rmbl.ws
-*.online-metrix.net
-*.skype.com
-*.hwcdn.net
-*.o9.de
-*.githubusercontent.com
-*.steamcontent.com
-*.nflxvideo.net
-*.netflix.com
-*.telegram.org
-*.gitlab.com

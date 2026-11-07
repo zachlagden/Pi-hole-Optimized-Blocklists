@@ -109,14 +109,15 @@ def test_cache_warmer_is_main_only_daily_and_credential_free() -> None:
 
 
 def test_offline_ci_runs_frozen_tests_for_prs_and_main_pushes() -> None:
-    content = workflow("triage-tests.yml")
-    assert set(content["on"]) == {"pull_request", "push"}
+    content = workflow("pr-checks.yml")
+    assert {"pull_request", "push"} <= set(content["on"])
     assert content["on"]["push"]["branches"] == ["main"]
     assert content["permissions"] == {"contents": "read"}
-    job = content["jobs"]["pytest"]
+    job = content["jobs"]["tests"]
     assert job["defaults"]["run"]["working-directory"] == ".github/triage"
+    assert action_steps(job, "actions/checkout")[0]["with"]["persist-credentials"] == "false"
     assert named_step(job, "Install frozen dependencies")["run"] == "uv sync --frozen"
-    assert named_step(job, "Run offline tests")["run"] == "uv run --frozen pytest -q"
+    assert named_step(job, "Run offline tests")["run"] == "uv run --frozen python -m pytest -q"
     assert action_steps(job, "astral-sh/setup-uv")[0]["with"]["python-version"] == "3.12"
     assert not action_steps(job, "actions/cache/restore")
     assert "secrets." not in str(job)

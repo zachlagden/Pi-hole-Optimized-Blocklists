@@ -1,0 +1,4 @@
+# Optimizer release used by update-blocklists.yml. Bump both lines together: sha256 is the
+# pihole-optimizer-linux-x86_64 line from that release's SHA256SUMS asset.
+version=3.3.0
+sha256=b0e1e39a301ae0ae546443c8cef0abd65b2b5cd5ef4106a13b8086dd7aa34246

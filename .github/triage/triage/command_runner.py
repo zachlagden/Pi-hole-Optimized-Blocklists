@@ -22,6 +22,7 @@ from triage.discord import Discord, plain_embed
 from triage.github_api import GitHub
 from triage.issue_form import from_issue
 from triage.publication import MAX_DOMAINS, PendingChange
+from triage.lint import Problem, new_problems
 from triage.repo_ops import MergeConflict, RepoOps
 from triage.state import TriageState, parse_state
 
@@ -34,6 +35,12 @@ TIMING_WEEKLY = "Publication is pending the next successful weekly rebuild (Sund
 class Actor:
     login: str
     api_key: str | None = None
+
+
+class LintRefusal(Exception):
+    def __init__(self, problems: list[Problem]):
+        super().__init__("; ".join(str(problem) for problem in problems))
+        self.problems = problems
 
 
 @dataclass
@@ -125,6 +132,8 @@ def handle(github: GitHub, ops: RepoOps, issue: dict, command: Command, comment_
             merged = change(ops, issue, command, domains, state, request.category, request.service)
     except RefusedChange as error:
         return refuse(ops, number, comment_id, str(error))
+    except LintRefusal as refusal:
+        return refuse(ops, number, comment_id, "Nothing changed, because the edit would fail the list checks:\n" + "\n".join(f"- `{p}`" for p in refusal.problems))
     except SkippedChange as error:
         ops.comment(number, "No configuration change needed:\n" + "\n".join(f"- {skip}" for skip in error.skipped))
         ops.remove_label(number, "needs info")
@@ -210,6 +219,8 @@ def change_once(ops: RepoOps, issue: dict, command: Command, domains: list[str],
         text = entry_block(entries, file_note(command, domains, state, number, pr))
         return append_block(original, text) if block else insert_allow_block(original, text, today, f"Allowlisted {', '.join(domains)} (#{number})")
 
+    if problems := new_problems(path, original, render(None)):
+        raise LintRefusal(problems)
     branch = f"triage/issue-{number}-{command.action}-{int(time.time())}"
     ops.create_branch(branch, base_sha)
     sha = ops.write_file(path, branch, render(None), sha, title)

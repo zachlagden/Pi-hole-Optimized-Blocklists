@@ -1,0 +1,70 @@
+name: PR checks
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: .github/triage
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          python-version: '3.12'
+          enable-cache: true
+          cache-dependency-glob: .github/triage/uv.lock
+          save-cache: false
+
+      - name: Install frozen dependencies
+        run: uv sync --frozen
+
+      - name: Run offline tests
+        run: uv run --frozen python -m pytest -q
+
+  lists:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: .github/triage
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: true
+          cache-dependency-glob: .github/triage/uv.lock
+          save-cache: false
+
+      - name: Check sources, custom lists and whitelist
+        env:
+          REPO_ROOT: ${{ github.workspace }}
+          BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}
+        run: |
+          uv sync --frozen --no-dev
+          if [ -n "$BASE_REF" ]; then
+            uv run python -m triage lint --changed-since "$BASE_REF"
+          else
+            uv run python -m triage lint
+          fi

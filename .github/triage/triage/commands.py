@@ -3,8 +3,8 @@ import textwrap
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from triage.domains import clean_domain, shared_platform
-from triage.policy import SHARED_PATH_HOSTS
+from triage.domains import clean_domain, hosted_platform, shared_platform
+from triage.policy import PLATFORM_ALLOW_EXCEPTIONS, SHARED_PATH_HOSTS
 from triage.listparse import extract_entry
 from triage.repo_state import custom_matches_text, whitelist_matches_text
 
@@ -130,6 +130,11 @@ def plan_domains(command: Command, domains: list[str], files: dict[str, str]) ->
             plan.problems.append(f"`{domain}` serves many users by path; target a dedicated host instead")
         elif shared_platform(domain) == domain:
             plan.problems.append(f"`{domain}` is a shared platform itself; target the tenant host instead")
+        if command.action == "allow" and command.scope != "exact" and domain not in PLATFORM_ALLOW_EXCEPTIONS and (platform := hosted_platform(domain)):
+            plan.problems.append(
+                f"`{domain}` hosts other people's sites (`{platform}`), so allowing its subdomains would unblock "
+                f"all of them; use `/allow exact`, or allow the specific host"
+            )
         if command.action == "block" and whitelist_conflicts(whitelist, domain, command.exact):
             plan.problems.append(f"`{domain}` conflicts with `whitelist.txt`; remove that allowance first")
         covered = block_covers(files, domain, command.exact) if command.action == "block" else allow_covers(whitelist, domain, command.scope)
