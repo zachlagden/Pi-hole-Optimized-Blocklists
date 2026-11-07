@@ -105,7 +105,6 @@ The lists are built from these sources, configured in [`blocklists.conf`](blockl
 | [AdGuard DNS filter](https://github.com/AdguardTeam/AdGuardSDNSFilter) | DNS filter | advertising | [GPL-3.0](https://github.com/AdguardTeam/AdGuardSDNSFilter/blob/master/LICENSE) |
 | [Frogeye](https://hostfiles.frogeye.fr) | First-party trackers | tracking | [MIT](https://git.frogeye.fr/geoffrey/eulaurarien/src/branch/master/LICENSE) |
 | [Perflyst](https://github.com/Perflyst/PiHoleBlocklist) | Smart TV, Android tracking | tracking | [MIT](https://github.com/Perflyst/PiHoleBlocklist/blob/master/LICENSE) |
-| [URLhaus](https://urlhaus.abuse.ch) | Host file | malicious | [abuse.ch terms of use](https://abuse.ch/terms-of-use/) |
 | [Phishing Army](https://phishing.army) | Extended | malicious | [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/) |
 | [Stalkerware indicators](https://github.com/AssoEchap/stalkerware-indicators) | Hosts | malicious | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
 | [DandelionSprout](https://github.com/DandelionSprout/adfilt) | Anti-Malware List | malicious | [Dandelicence](https://github.com/DandelionSprout/adfilt/blob/master/LICENSE.md) |
