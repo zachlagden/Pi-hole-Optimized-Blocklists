@@ -27,7 +27,6 @@ FP_PRONE_SOURCES = {
 THREAT_INTEL_SOURCES = {
     "hagezi_tif_full",
     "hagezi_fake",
-    "urlhaus",
     "curbengh_phishing",
     "dandelion_antimalware",
     "shadowwhisperer_malware",
