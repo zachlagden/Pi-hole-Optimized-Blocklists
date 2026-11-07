@@ -23,6 +23,7 @@ class TriageState:
     seen_comments: list[int] = field(default_factory=list)
     seen_urls: list[str] = field(default_factory=list)
     history: list[str] = field(default_factory=list)
+    site_observation_bound: bool = False
 
     def to_marker(self) -> str:
         encoded = base64.b64encode(json.dumps(asdict(self)).encode()).decode()

@@ -68,9 +68,14 @@ def shared_platform(domain: str) -> str | None:
 
 
 @lru_cache(maxsize=1)
-def _platform_suffixes() -> frozenset[str]:
+def _public_extractor() -> tldextract.TLDExtract:
     cache_dir = Path.home() / ".cache" / "issue-triage" / "tldextract"
-    public = tldextract.TLDExtract(cache_dir=str(cache_dir), include_psl_private_domains=False).tlds
+    return tldextract.TLDExtract(cache_dir=str(cache_dir), include_psl_private_domains=False)
+
+
+@lru_cache(maxsize=1)
+def _platform_suffixes() -> frozenset[str]:
+    public = _public_extractor().tlds
     every = (suffix.removeprefix("*.").removeprefix("!") for suffix in _extractor().tlds)
     return frozenset(every) - frozenset(public)
 

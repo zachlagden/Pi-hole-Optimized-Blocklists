@@ -44,7 +44,9 @@ def held(github: GitHub, vt_key: str) -> tuple[Finding, list[int]]:
 
 
 def comment_blocks(text: str) -> list[tuple[list[str], list[str]]]:
-    blocks, comments, entries = [], [], []
+    blocks: list[tuple[list[str], list[str]]] = []
+    comments: list[str] = []
+    entries: list[str] = []
     for line in text.splitlines():
         if line.startswith("#"):
             if entries:

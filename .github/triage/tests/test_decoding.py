@@ -1,4 +1,5 @@
 import httpx
+from pytest import MonkeyPatch
 
 from triage import live
 from triage.decoding import decode_page, page_charset
@@ -57,9 +58,9 @@ def test_unknown_declared_charset_falls_through():
     assert live._title(decode_page(chinese_page(), "not-a-charset")) == CHINESE_TITLE
 
 
-def test_fetch_url_uses_the_response_charset(monkeypatch):
+def test_fetch_url_uses_the_response_charset(monkeypatch: MonkeyPatch) -> None:
     def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, content=russian_page(), headers={"Content-Type": "text/html; charset=windows-1251"})
+        return httpx.Response(200, stream=httpx.ByteStream(russian_page()), headers={"Content-Type": "text/html; charset=windows-1251"})
 
     real_client = httpx.Client
     monkeypatch.setattr(live, "is_public_host", lambda host: True)

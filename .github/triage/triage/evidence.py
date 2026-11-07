@@ -4,6 +4,7 @@ from triage.coverage import Coverage
 from triage.github_api import Reporter
 from triage.issue_form import IssueRequest
 from triage.live import Fetch
+from triage.materials import Material
 from triage.repo_state import RepoMatch
 from triage.reputation import Registration, VirusTotal
 from triage.screenshot import Capture
@@ -34,6 +35,7 @@ class Evidence:
     lookalikes: list[Lookalike] = field(default_factory=list)
     reporter: Reporter | None = None
     failures: list[str] = field(default_factory=list)
+    materials: list[Material] = field(default_factory=list)
 
     @property
     def listing_sources(self) -> list[SourceResult]:

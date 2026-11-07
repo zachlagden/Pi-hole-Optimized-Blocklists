@@ -35,15 +35,16 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: .github/triage/uv.lock
+          save-cache: false
 
       - name: Restore Tranco, suffix list and browser caches
-        uses: actions/cache@v6
+        uses: actions/cache/restore@v6
         with:
           path: |
             ~/.cache/issue-triage
             ~/.cache/ms-playwright
-          key: triage-${{ hashFiles('.github/triage/uv.lock') }}-${{ github.run_id }}
-          restore-keys: triage-${{ hashFiles('.github/triage/uv.lock') }}-
+          key: triage-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/triage/uv.lock') }}-current
+          restore-keys: triage-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/triage/uv.lock') }}-
 
       - name: Install dependencies
         run: |
@@ -92,6 +93,7 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: .github/triage/uv.lock
+          save-cache: false
 
       - name: Install Python dependencies
         run: uv sync --frozen --no-dev
@@ -114,13 +116,13 @@ jobs:
 
       - name: Restore Tranco, suffix list and browser caches
         if: steps.check.outputs.run == 'true'
-        uses: actions/cache@v6
+        uses: actions/cache/restore@v6
         with:
           path: |
             ~/.cache/issue-triage
             ~/.cache/ms-playwright
-          key: triage-${{ hashFiles('.github/triage/uv.lock') }}-${{ github.run_id }}
-          restore-keys: triage-${{ hashFiles('.github/triage/uv.lock') }}-
+          key: triage-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/triage/uv.lock') }}-current
+          restore-keys: triage-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/triage/uv.lock') }}-
 
       - name: Install browser
         if: steps.check.outputs.run == 'true'
@@ -174,6 +176,7 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: .github/triage/uv.lock
+          save-cache: false
 
       - name: Run maintainer command
         env:

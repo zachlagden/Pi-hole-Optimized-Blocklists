@@ -69,3 +69,10 @@ def test_visible_text_drops_scripts_and_tags():
     from triage.live import visible_text
     page = b"<html><script>var x=1</script><style>p{}</style><h1>Univ &amp; Co</h1><p>Welcome</p></html>"
     assert visible_text(page) == "Univ & Co Welcome"
+
+
+def test_healthy_shrink_summary_does_not_claim_publication() -> None:
+    report = buildcheck.BuildReport(1000, 850, [], [], {})
+    text = buildcheck.summary(report)
+    assert "Publication can proceed if the remaining build steps succeed" in text
+    assert "Committed" not in text and "published" not in text.lower()

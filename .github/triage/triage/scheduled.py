@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+from dataclasses import asdict
 from pathlib import Path
 
 from triage import buildcheck, fp_review, reputation, watch
@@ -12,15 +13,24 @@ CACHE_DIR = Path.home() / ".cache" / "issue-triage"
 
 
 def run_buildcheck(options: argparse.Namespace, discord: Discord | None) -> int:
+    feed_check = getattr(options, "feed_check", None)
+    if feed_check:
+        Path(feed_check).unlink(missing_ok=True)
     ranks = reputation.tranco_ranks(CACHE_DIR / "tranco")
     stats = Path(options.stats)
     report = buildcheck.check(Path(options.repo_root), Path(options.old), Path(options.new), Path(options.base), stats, ranks)
+    if feed_check:
+        Path(feed_check).write_text(json.dumps({
+            "successful": True,
+            "held": report.hold,
+            "feed_problems": [asdict(problem) for problem in report.feed_problems],
+        }, indent=2) + "\n")
+    write_outputs(report.hold, "", "list shrank" if report.hold else "")
     apply_review(report)
     text = buildcheck.summary(report)
     print(text)
     if not report.hold:
         stats.write_text(json.dumps(report.counts, indent=2) + "\n")
-    write_outputs(report.hold, "", "list shrank" if report.hold else "")
     if discord:
         title = "Weekly build HELD" if report.hold else "Weekly build check"
         discord.send(title + ".", report_embed(title, text, run_url(), report.needs_attention), ping=report.needs_attention)

@@ -71,5 +71,5 @@ def test_new_problems_ignore_problems_that_were_already_there():
 def test_bot_change_is_refused_before_any_branch_when_it_adds_a_problem():
     ops = FakeOps(conflicts=0)
     with pytest.raises(LintRefusal):
-        change(ops, {"number": 7, "title": "Block"}, Command(action="block"), ["github.io"], None, "malicious", "")
+        change(ops, {"number": 7, "title": "Block"}, Command(action="block"), ["amazonaws.com"], None, "malicious", "")
     assert ops.opened == []

@@ -8,6 +8,7 @@ from pathlib import Path
 
 import httpx
 
+from triage.live import RequestBudget, bounded_get
 from triage.policy import REPUTABLE_VT_ENGINES
 
 VT_ATTEMPTS = 3
@@ -49,8 +50,11 @@ class Registration:
     error: str | None = None
 
 
-def _to_date(timestamp: int | None) -> date | None:
-    return datetime.fromtimestamp(timestamp, UTC).date() if timestamp else None
+def _to_date(timestamp: int | float | None) -> date | None:
+    try:
+        return datetime.fromtimestamp(timestamp, UTC).date() if timestamp is not None else None
+    except (ValueError, OverflowError, OSError, TypeError):
+        return None
 
 
 def _virustotal_get(domain: str, api_key: str) -> httpx.Response:
@@ -103,23 +107,26 @@ def _registrar_name(entities: list[dict]) -> str:
 
 
 def registration(domain: str) -> Registration:
+    with httpx.Client(timeout=10, follow_redirects=False, trust_env=False) as client:
+        response = bounded_get(client, RDAP_URL.format(domain=domain), max_body=256_000, max_redirects=5, budget=RequestBudget())
+    if response.error:
+        return Registration(domain, error=f"RDAP {response.error}")
+    if response.status != 200:
+        return Registration(domain, error=f"RDAP HTTP {response.status}")
     try:
-        response = httpx.get(RDAP_URL.format(domain=domain), follow_redirects=True, timeout=30)
-    except httpx.HTTPError as error:
-        return Registration(domain, error=str(error))
-    if response.status_code != 200:
-        return Registration(domain, error=f"RDAP HTTP {response.status_code}")
-    data = response.json()
-    created = next(
-        (event["eventDate"][:10] for event in data.get("events", []) if event.get("eventAction") == "registration"),
-        None,
-    )
-    return Registration(
-        domain=domain,
-        created=date.fromisoformat(created) if created else None,
-        registrar=_registrar_name(data.get("entities", [])),
-        nameservers=sorted(ns.get("ldhName", "").lower() for ns in data.get("nameservers", [])),
-    )
+        data = httpx.Response(200, content=response.body).json()
+        created = next(
+            (event["eventDate"][:10] for event in data.get("events", []) if event.get("eventAction") == "registration"),
+            None,
+        )
+        return Registration(
+            domain=domain,
+            created=date.fromisoformat(created) if created else None,
+            registrar=_registrar_name(data.get("entities", [])),
+            nameservers=sorted(ns.get("ldhName", "").lower() for ns in data.get("nameservers", [])),
+        )
+    except (ValueError, KeyError, TypeError, AttributeError):
+        return Registration(domain, error="RDAP malformed registration data; creation date unknown")
 
 
 def tranco_ranks(cache_dir: Path) -> dict[str, int]:

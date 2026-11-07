@@ -36,6 +36,8 @@ def _age_signals(evidence: Evidence, today: date) -> list[Signal]:
     if created is None:
         return []
     days = (today - created).days
+    if days < 0:
+        return [Signal(NOTE, f"Registration date {created} is after {today}; domain age is unavailable")]
     if days < YOUNG_DOMAIN_DAYS:
         return [Signal(TOWARD_BLOCK, f"{evidence.apex} was registered {days} days ago ({created})")]
     if days > 3 * 365:
@@ -46,14 +48,14 @@ def _age_signals(evidence: Evidence, today: date) -> list[Signal]:
 def _virustotal_signals(evidence: Evidence) -> list[Signal]:
     signals = []
     for vt in evidence.virustotal:
-        if not vt.found:
+        if vt.error or not vt.found:
             continue
         reputable = vt.reputable_hits
         if len(reputable) >= MIN_REPUTABLE_VT_HITS:
             names = ", ".join(reputable)
             signals.append(Signal(TOWARD_BLOCK, f"VirusTotal: {len(reputable)} reputable engines flag {vt.domain} ({names})"))
         elif vt.malicious + vt.suspicious == 0:
-            signals.append(Signal(TOWARD_ALLOW, f"VirusTotal: no engine flags {vt.domain}"))
+            signals.append(Signal(NOTE, f"VirusTotal: no engine flagged {vt.domain} at recorded scan date {vt.last_analysis or 'unknown'}; neutral scanner evidence, not proof of safety"))
         elif not reputable:
             signals.append(Signal(NOTE, f"VirusTotal: only minor engines flag {vt.domain}, which is not enough by itself"))
     return signals
@@ -85,14 +87,17 @@ def provider_flags(evidence: Evidence) -> list[str]:
     flags = []
     for fetch in evidence.fetches + evidence.quoted_fetches:
         title = fetch.title.lower()
-        for marker, meaning in PROVIDER_PHISHING_TITLES.items():
+        for marker in PROVIDER_PHISHING_TITLES:
             if marker in title and fetch.chain:
-                flags.append(f"{fetch.chain[0]} returns {meaning}")
+                flags.append(
+                    f"HTTP {fetch.status} at {fetch.final_url}: page supplied title {fetch.title!r}; "
+                    f"matched substring {marker!r} (website-controlled heuristic, not an authenticated provider warning)"
+                )
     return sorted(set(flags))
 
 
 def _site_signals(evidence: Evidence) -> list[Signal]:
-    signals = [Signal(TOWARD_BLOCK, flag) for flag in provider_flags(evidence)]
+    signals = [Signal(NOTE, flag) for flag in provider_flags(evidence)]
     hops = sorted({url for fetch in evidence.fetches + evidence.quoted_fetches for url in fetch.script_redirects})
     if hops:
         signals.append(Signal(NOTE, "Page script redirects to " + ", ".join(hops[:3]) + ". Check those hosts too"))
@@ -101,7 +106,7 @@ def _site_signals(evidence: Evidence) -> list[Signal]:
     for lookalike in evidence.lookalikes:
         signals.append(Signal(TOWARD_BLOCK, f"Looks like {lookalike.brand} (Tranco #{lookalike.rank:,}): {lookalike.reason}"))
     if evidence.fetches and all(fetch.status is None for fetch in evidence.fetches):
-        signals.append(Signal(NOTE, "The site did not load for any visitor type"))
+        signals.append(Signal(NOTE, "HTTP probes failed; this does not establish whether the browser loaded the site"))
     return signals
 
 
@@ -136,12 +141,11 @@ def collect(evidence: Evidence, today: date) -> list[Signal]:
 def evidence_bar(evidence: Evidence) -> tuple[bool, str]:
     reasons = []
     for vt in evidence.virustotal:
-        if len(vt.reputable_hits) >= MIN_REPUTABLE_VT_HITS:
+        if not vt.error and vt.found and len(vt.reputable_hits) >= MIN_REPUTABLE_VT_HITS:
             reasons.append(f"{len(vt.reputable_hits)} reputable VirusTotal engines flag {vt.domain}")
     intel = [name for name in evidence.blocking_sources if name in THREAT_INTEL_SOURCES]
     if intel:
         reasons.append("listed by " + ", ".join(intel))
-    reasons += provider_flags(evidence)
     if reasons:
         return True, "; ".join(reasons)
-    return False, "no reputable multi-engine detection and no threat-intel listing; needs evidence such as a captured phishing page"
+    return False, "no automated multi-engine or threat-intel corroboration; website title substrings are not authenticated provider warnings; this is not a veto on a valid captured phishing-page visual assessment"

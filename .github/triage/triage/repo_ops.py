@@ -1,7 +1,10 @@
 import base64
 import time
+from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
+from typing import Any
+from urllib.parse import quote
 
 import httpx
 
@@ -28,7 +31,7 @@ class RepoOps:
         self.client = github.client
         self.base = f"/repos/{github.repository}"
 
-    def _send(self, method: str, path: str, **kwargs) -> httpx.Response:
+    def _send(self, method: str, path: str, **kwargs: Any) -> httpx.Response:
         response = self.client.request(method, self.base + path, **kwargs)
         response.raise_for_status()
         return response
@@ -48,6 +51,10 @@ class RepoOps:
         data = self._send("GET", f"/contents/{path}", params={"ref": ref}).json()
         return base64.b64decode(data["content"]).decode(), data["sha"]
 
+    def read_configuration(self, ref: str) -> dict[str, str]:
+        paths = ["whitelist.txt"] + [f"custom/{category}.txt" for category in ("malicious", "advertising", "tracking", "suspicious", "nsfw")]
+        return {path: self.read_file(path, ref)[0] for path in paths}
+
     def write_file(self, path: str, branch: str, text: str, sha: str, message: str) -> str:
         payload = {"message": message, "content": base64.b64encode(text.encode()).decode(), "sha": sha, "branch": branch}
         return self._send("PUT", f"/contents/{path}", json=payload).json()["content"]["sha"]
@@ -56,16 +63,17 @@ class RepoOps:
         data = self._send("POST", "/pulls", json={"title": title, "head": head, "base": "main", "body": body}).json()
         return data["number"], data["html_url"]
 
-    def merge_pr(self, number: int, title: str) -> None:
+    def merge_pr(self, number: int, title: str) -> str:
         for attempt in range(MERGE_ATTEMPTS):
             response = self.client.put(f"{self.base}/pulls/{number}/merge", json={"merge_method": "squash", "commit_title": f"{title} (#{number})"})
-            if response.status_code == 200:
-                return
+            if response.status_code == 200 and response.json().get("merged"):
+                return str(response.json()["sha"])
             if response.status_code not in (405, 409):
                 response.raise_for_status()
             if attempt == MERGE_ATTEMPTS - 1:
                 raise MergeConflict(f"PR #{number} could not be merged: {response.status_code}")
             time.sleep(MERGE_RETRY_SECONDS)
+        raise MergeConflict(f"PR #{number} could not be merged")
 
     def close_pr(self, number: int) -> None:
         self._send("PATCH", f"/pulls/{number}", json={"state": "closed"})
@@ -90,7 +98,7 @@ class RepoOps:
         return False
 
     @contextmanager
-    def lock(self):
+    def lock(self) -> Iterator[None]:
         deadline = time.monotonic() + LOCK_WAIT_SECONDS
         while not self._try_lock():
             age = self._lock_age_seconds()
@@ -113,6 +121,11 @@ class RepoOps:
 
     def add_labels(self, number: int, labels: list[str]) -> None:
         self._send("POST", f"/issues/{number}/labels", json={"labels": labels})
+
+    def remove_label(self, number: int, label: str) -> None:
+        response = self.client.delete(f"{self.base}/issues/{number}/labels/{quote(label, safe='')}")
+        if response.status_code != 404:
+            response.raise_for_status()
 
     def react(self, comment_id: int, content: str) -> None:
         self.client.post(f"{self.base}/issues/comments/{comment_id}/reactions", json={"content": content})
