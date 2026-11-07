@@ -3,3 +3,24 @@
 # One domain per line — processed by the optimizer on weekly runs
 # AppsFlyer mobile attribution / tracking SDK — apex + all subdomains (#38, PR #43)
 ||appsflyersdk.com^
+# clicks.inmusicbrands.com, clicks.airmusictech.com, clicks.akaipro.com, clicks.alesis.com,
+# clicks.altoprofessional.com, clicks.bfddrums.com, clicks.denondj.com, clicks.enginedj.com,
+# clicks.headrushfx.com, clicks.m-audio.com, clicks.moogmusic.com, clicks.numark.com,
+# clicks.rane.com, clicks.soundswitch.com, clicks.native-instruments.com: Added to the tracking list
+# as exact hosts. They'll be in the lists from the next weekly build. registered 2012-06-28. (#179,
+# PR #182)
+clicks.inmusicbrands.com
+clicks.airmusictech.com
+clicks.akaipro.com
+clicks.alesis.com
+clicks.altoprofessional.com
+clicks.bfddrums.com
+clicks.denondj.com
+clicks.enginedj.com
+clicks.headrushfx.com
+clicks.m-audio.com
+clicks.moogmusic.com
+clicks.numark.com
+clicks.rane.com
+clicks.soundswitch.com
+clicks.native-instruments.com
