@@ -23,10 +23,20 @@ def offline_dependencies(monkeypatch: pytest.MonkeyPatch) -> None:
         include_psl_private_domains=True,
     )
 
+    public_extractor = tldextract.TLDExtract(
+        cache_dir=None,
+        suffix_list_urls=(),
+        include_psl_private_domains=False,
+    )
+
     def bundled_extractor() -> tldextract.TLDExtract:
         return extractor
 
+    def bundled_public_extractor() -> tldextract.TLDExtract:
+        return public_extractor
+
     monkeypatch.setattr(domains, "_extractor", bundled_extractor)
+    monkeypatch.setattr(domains, "_public_extractor", bundled_public_extractor)
     monkeypatch.setattr(httpx.HTTPTransport, "handle_request", deny_external_call)
     monkeypatch.setattr(httpx.AsyncHTTPTransport, "handle_async_request", deny_external_call)
     monkeypatch.setattr(requests.Session, "request", deny_external_call)
