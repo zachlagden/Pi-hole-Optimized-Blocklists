@@ -7,6 +7,7 @@ from urllib.parse import urldefrag, urlsplit
 
 import httpx
 
+from triage.email_reply import is_notification_url, strip_email_reply
 from triage.github_api import GitHub
 from triage.issue_form import IssueRequest
 from triage.live import RequestBudget, bounded_get, content_outcome, extracted_urls, visible_text
@@ -137,7 +138,7 @@ def _inspect_issue(material: Material, number: int, github: GitHub) -> None:
 
 
 def collect_materials(request: IssueRequest, github: GitHub) -> list[Material]:
-    sources = [("issue body", request.body)] + [(f"comment #{comment.id}", comment.body) for comment in request.thread[:20]]
+    sources = [("issue body", request.body)] + [(f"comment #{comment.id}", strip_email_reply(comment.body)) for comment in request.thread[:20]]
     materials: list[Material] = []
     seen: set[str] = set()
     remaining_input = MAX_INPUT
@@ -148,6 +149,8 @@ def collect_materials(request: IssueRequest, github: GitHub) -> list[Material]:
         urls += [f"https://github.com/{github.repository}/issues/{number}" for number in re.findall(r"(?<![\w/])#([1-9]\d{0,8})\b", text)[:MAX_ISSUES]]
         for original in urls:
             url = urldefrag(original)[0]
+            if is_notification_url(url):
+                continue
             if url in seen or len(materials) >= MAX_MATERIALS:
                 continue
             seen.add(url)

@@ -3,14 +3,20 @@ from datetime import UTC, date, datetime
 from typing import Literal
 from urllib.parse import urlsplit
 
+from triage.email_reply import is_notification_url
 from triage.evidence import Evidence
 from triage.issue_form import NO_RESPONSE, parse_sections
 from triage.live import URL_RE, content_outcome
 from triage.policy import MIN_REPUTABLE_VT_HITS, SHARED_PATH_HOSTS, THREAT_INTEL_SOURCES
-from triage.publication_safety import public_text, safe_data
+from triage.publication_safety import public_text, safe_data, trim_sentences
 from triage.signals import provider_flags
 
 ObservationKind = Literal["bot_measurement", "reporter_claim", "website_text", "fetched_corroboration"]
+PUBLIC_ATTRIBUTION = {
+    "reporter_claim": "Reporter says: ",
+    "website_text": "Website text, unverified: ",
+    "fetched_corroboration": "Fetched source, unverified: ",
+}
 
 
 @dataclass(frozen=True)
@@ -22,9 +28,16 @@ class Observation:
     supports: tuple[str, ...] = ()
     image: bool = False
     usable_target_content: bool = False
+    public: str = ""
+    publishable: bool = True
 
     def public_fact(self) -> str:
-        return f"[{self.id}; {self.kind}; {public_text(self.source, 160)}] {public_text(self.fact)}"
+        if not self.publishable:
+            return ""
+        if self.public:
+            return public_text(self.public)
+        prefix = "" if self.image else PUBLIC_ATTRIBUTION.get(self.kind, "")
+        return public_text(prefix + self.fact)
 
 
 def probe_name(profile: str) -> str:
@@ -51,10 +64,11 @@ def collect(
     def add(
         identifier: str, kind: ObservationKind, source: str, fact: str,
         supports: tuple[str, ...] = (), image: bool = False, usable_target_content: bool = False,
+        public: str = "", publishable: bool = True,
     ) -> None:
-        observations.append(Observation(identifier, kind, source, fact, supports, image, usable_target_content))
+        observations.append(Observation(identifier, kind, source, fact, supports, image, usable_target_content, public, publishable))
 
-    add("target.host", "bot_measurement", "validated review target", evidence.domain)
+    add("target.host", "bot_measurement", "validated review target", evidence.domain, public=f"Reviewed host: {evidence.domain}.")
     if evidence.domain in SHARED_PATH_HOSTS or evidence.domain == evidence.platform:
         add("scope.restriction", "bot_measurement", "project shared-host policy",
             f"{evidence.domain} serves unrelated users; a domain-wide block is prohibited.", ("decline",))
@@ -95,7 +109,8 @@ def collect(
         add("registration.platform", "bot_measurement", "domain classification",
             f"Registration data describes shared platform {evidence.platform}, not this site's age.")
     rank = evidence.tranco_rank or evidence.apex_tranco_rank
-    add("rank", "bot_measurement", "Tranco", f"Recorded rank: {rank:,}." if rank else "Not in the top 1M.")
+    add("rank", "bot_measurement", "Tranco", f"Recorded rank: {rank:,}." if rank else "Not in the top 1M.",
+        public=f"Tranco rank: {rank:,}." if rank else "Not in the Tranco top 1M.")
     add("dns", "bot_measurement", "DNS lookup", "Resolved addresses: " + (", ".join(evidence.addresses) or "no answer") + ".")
     for index, fetch in enumerate(evidence.fetches + evidence.quoted_fetches):
         source = f"{probe_name(fetch.profile)}: {fetch.start or fetch.final_url}"
@@ -107,10 +122,13 @@ def collect(
             and content_outcome(fetch.status, fetch.title + " " + fetch.excerpt, fetch.error) == "rendered"
             and _target_url(fetch.final_url, evidence.domain)
         )
-        add(f"probe.{index}", "bot_measurement", source, fact, usable_target_content=usable)
+        probe = probe_name(fetch.profile)
+        add(f"probe.{index}", "bot_measurement", source, fact, usable_target_content=usable,
+            public=f"{probe[:1].upper()}{probe[1:]} of {fetch.start or fetch.final_url}: {fact}")
         if fetch.title or fetch.excerpt:
             add(f"probe.text.{index}", "website_text", source,
-                f"Page supplied title {fetch.title!r}; excerpt {fetch.excerpt!r}.")
+                f"Page supplied title {fetch.title!r}; excerpt {fetch.excerpt!r}.",
+                public=f"Website text, unverified: title {fetch.title!r}; excerpt {fetch.excerpt!r}.")
     for index, flag in enumerate(provider_flags(evidence)):
         add(f"provider.{index}", "website_text", "HTTP page title substring heuristic (website-controlled)", flag)
     capture = evidence.capture
@@ -130,18 +148,20 @@ def collect(
             add("browser.image", "fetched_corroboration", f"browser screenshot at {capture.final_url}",
                 "A bounded browser screenshot was supplied to the review model; its interpretation is advisory.", image=True)
         if capture.text:
-            add("browser.text", "website_text", f"browser page at {capture.final_url}", f"Page supplied text: {capture.text}")
+            add("browser.text", "website_text", f"browser page at {capture.final_url}", f"Page supplied text: {capture.text}",
+                public=f"Website text, unverified: {capture.text}")
     request = evidence.request
     form = parse_sections(request.body)
     if not form:
         form = {"title": request.title, "evidence": request.evidence, "details": request.details, "service": request.service}
     for index, (name, value) in enumerate(form.items()):
         if value.strip() and value.strip() != NO_RESPONSE:
-            add(f"report.form.{index}", "reporter_claim", f"issue form field: {name}", f"Reporter supplied: {value}")
+            add(f"report.form.{index}", "reporter_claim", f"issue form field: {name}", f"Reporter supplied: {value}",
+                public=f"Reporter says ({name}): {trim_sentences(' '.join(value.split()), 240)}")
     for index, comment in enumerate(request.thread):
         if comment.body.strip():
             add(f"report.comment.{index}", "reporter_claim", f"issue comment by {comment.author} ({comment.role})",
-                f"Comment supplied: {comment.body}")
+                f"Comment supplied: {comment.body}", publishable=False)
     inspected: set[str] = {fetch.start for fetch in evidence.fetches + evidence.quoted_fetches if fetch.status is not None}
     for index, material in enumerate(getattr(evidence, "materials", ())):
         url = str(getattr(material, "url", ""))
@@ -160,15 +180,18 @@ def collect(
             f"{'content supplied to model' if image or text else 'uninspected content'}. {note} "
             f"Collection limitation: {error or 'none'}.")
         if text:
-            add(f"material.text.{index}", "fetched_corroboration", f"{source}: {url}", f"Fetched source supplied: {text}")
+            add(f"material.text.{index}", "fetched_corroboration", f"{source}: {url}", f"Fetched source supplied: {text}",
+                public=f"Fetched source, unverified: {text}")
         if image:
             add(image_id, "fetched_corroboration", f"{source}: {url}",
                 "A bounded submitted image was supplied to the review model; its interpretation is advisory.", image=True)
     raw_text = "\n".join([request.body, request.evidence, request.details] + [c.body for c in request.thread])
     urls = list(dict.fromkeys(url.rstrip(".,;:!?") for url in URL_RE.findall(raw_text)))
+    urls = [url for url in urls if not is_notification_url(url)]
     for index, url in enumerate(urls):
         if url not in inspected:
-            add(f"link.{index}", "reporter_claim", "issue link or attachment", f"Uninspected link/attachment: {url}")
+            add(f"link.{index}", "reporter_claim", "issue link or attachment", f"Uninspected link/attachment: {url}",
+                public=f"Uninspected link/attachment from the issue: {url}")
     return observations
 
 

@@ -83,4 +83,5 @@ def test_public_observation_provenance_cannot_be_broken_by_newlines_or_mentions(
     observation = next(observation for observation in collect(item) if observation.id.startswith("report.form."))
     public = observation.public_fact()
     assert "\n" not in public and "@Sam" not in public
-    assert "reporter_claim" in public
+    assert public.startswith("Reporter says (")
+    assert "[" not in public and "reporter_claim" not in public

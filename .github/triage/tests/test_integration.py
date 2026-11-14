@@ -132,7 +132,7 @@ def test_legacy_state_site_is_not_reused_as_a_verified_file_note() -> None:
     review.observations = [Observation("browser.text", "website_text", "browser", "Page supplied Acme text")]
     review.site_observation_ids = ["browser.text"]
     next_state = rerun.next_state(request(), state, review, "new evidence", [])
-    assert next_state.site_observation_bound and "website_text" in next_state.site and "Invented" not in next_state.site
+    assert next_state.site_observation_bound and next_state.site.startswith("Website text, unverified") and "Invented" not in next_state.site
     assert TriageState(site="legacy").site_observation_bound is False
 
 
