@@ -6,6 +6,8 @@ from urllib.parse import quote
 
 import httpx
 
+from triage.email_reply import strip_email_reply
+
 API = "https://api.github.com"
 MARKER = "<!-- issue-triage-report -->"
 
@@ -120,7 +122,7 @@ class GitHub:
                 id=c["id"],
                 author=c["user"]["login"],
                 role=_role(c, author),
-                body=c.get("body") or "",
+                body=strip_email_reply(c.get("body") or ""),
             )
             for c in self.comments(issue["number"])
             if c["user"].get("type") != "Bot" and not is_command(c)
