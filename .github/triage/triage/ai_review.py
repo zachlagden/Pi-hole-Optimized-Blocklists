@@ -14,7 +14,7 @@ from triage.state import TriageState
 from triage.labels import IMPACT_LABELS, IMPACT_RUBRIC, TYPE_LABELS
 from triage.policy import RULES_FOR_REVIEWERS
 from triage.observations import Observation, collect, model_text
-from triage.publication_safety import deterministic_reporter_reply, safe_data, safe_questions, trim_sentences
+from triage.publication_safety import deterministic_reporter_reply, public_text, safe_data, safe_questions, trim_sentences
 
 API_URL = "https://api.minimax.io/v1/chat/completions"
 MODEL = "MiniMax-M3"
@@ -382,12 +382,17 @@ def for_publication(review: Review) -> Review:
         and finding.get("observation_id") in known
         and known[finding["observation_id"]].image
     ]
-    reasons = [known[identifier].public_fact() for identifier in review.reason_observation_ids if identifier in known]
+    reasons = [fact for identifier in review.reason_observation_ids if identifier in known
+               if (fact := known[identifier].public_fact())]
     reasons += [
-        f"AI visual assessment [{finding['observation_id']}], advisory: {VISUAL_FINDINGS[finding['finding']]}."
+        f"AI visual assessment (advisory) of {public_text(known[finding['observation_id']].source, 160)}: "
+        f"{VISUAL_FINDINGS[finding['finding']]}."
         for finding in valid_visual
     ]
-    site = " ".join(known[identifier].public_fact() for identifier in review.site_observation_ids if identifier in known)
+    site_ids = [identifier for identifier in review.site_observation_ids if identifier in known]
+    if len(site_ids) > 1:
+        site_ids = [identifier for identifier in site_ids if identifier != "target.host"]
+    site = " ".join(fact for identifier in site_ids if (fact := known[identifier].public_fact()))
     supporting = review.supporting_observation_ids
     references_valid = bool(supporting) and all(
         identifier in known and (known[identifier].kind == "bot_measurement" or known[identifier].image)

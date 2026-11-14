@@ -94,7 +94,9 @@ def check(issue: dict[str, object], request: IssueRequest, thread: list[ThreadCo
 def next_state(request: IssueRequest, previous: TriageState | None, review: ai_review.Review | None, trigger: str, fetched: list[str], evidence: Evidence | None = None) -> TriageState:
     today = datetime.now(UTC).date().isoformat()
     validated = ai_review.for_publication(review) if review and not review.error else None
-    site_bound = bool(validated and set(validated.site_observation_ids) & {observation.id for observation in validated.observations})
+    site_bound = bool(validated and any(
+        observation.id in validated.site_observation_ids and observation.public_fact() for observation in validated.observations
+    ))
     recommendation = review.recommendation if review and not review.error else "no AI view"
     confidence = review.confidence if review and not review.error else ""
     verdict = f"{recommendation.replace('_', ' ')} ({confidence})" if confidence else recommendation.replace("_", " ")
