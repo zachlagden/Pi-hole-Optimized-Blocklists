@@ -40,7 +40,7 @@ jobs:
             echo "::notice::Optimizer v${latest} is released; this build uses the pinned v${version}. Update .github/optimizer-pin to move to it."
           fi
 
-      - uses: astral-sh/setup-uv@v10.3.3
+      - uses: astral-sh/setup-uv@v10.4.0
         with:
           enable-cache: true
           cache-dependency-glob: .github/triage/uv.lock
